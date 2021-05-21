@@ -1,5 +1,4 @@
-import React, { useState } from 'react'
-// State: Buzzes, buzzer state.
+import React from 'react'
 
 function ArrayToList(props)
 {
@@ -15,7 +14,7 @@ function ArrayToList(props)
 
 function Buzzer(props)
 {
-    if(props.gameState == 'paused')
+    if(props.gameState === 'paused')
     {
         return(
             <h1>Buzzed</h1>
@@ -27,16 +26,16 @@ function Buzzer(props)
     }
 }
 
-export default function Player(props)
+export default function PlayerGame(props)
 {
 
     function buzzHandler(event)
     {
         event.preventDefault();
-        if(props.gameState == 'running')
+        if(props.gameState === 'running')
         {
             let data = {
-                'username': props.socket.username,
+                'nickname': props.socket.nickname,
                 'roomId' : props.socket.roomId
             }
 
@@ -49,9 +48,11 @@ export default function Player(props)
     return(
         <div>
             <h1>Room {props.socket.roomId}</h1>
+
             <div onClick={buzzHandler}>
                 <Buzzer gameState = {props.gameState}/>
             </div>
+
             <ArrayToList array = {props.buzzes}/>
         </div>
     )
