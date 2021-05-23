@@ -1,4 +1,5 @@
-import React from 'react'
+import React , {useState, useEffect} from 'react'
+import socket, {listenForUpdates} from "../socket"
 
 function ArrayToList(props)
 {
@@ -28,32 +29,31 @@ function Buzzer(props)
 
 export default function PlayerGame(props)
 {
+    const [gameState, setGameState] = useState('running')
+    const [buzzes, setBuzzes] = useState([])
 
     function buzzHandler(event)
     {
         event.preventDefault();
-        if(props.gameState === 'running')
+        
+        if(gameState === 'running')
         {
-            let data = {
-                'nickname': props.socket.nickname,
-                'roomId' : props.socket.roomId
-            }
-
-            props.socket.emit('buzz', data)
-            
-            props.setGameState('paused')
+            socket.emit('buzz')
+            setGameState('paused') // We need to change this to backedn controlled
         }
     }
 
+    listenForUpdates(setBuzzes)
+
     return(
         <div>
-            <h1>Room {props.socket.roomId}</h1>
+            <h1>Room {socket.roomId}</h1>
 
             <div onClick={buzzHandler}>
-                <Buzzer gameState = {props.gameState}/>
+                <Buzzer gameState = {gameState}/>
             </div>
 
-            <ArrayToList array = {props.buzzes}/>
+            <ArrayToList array = {buzzes}/>
         </div>
     )
 }
