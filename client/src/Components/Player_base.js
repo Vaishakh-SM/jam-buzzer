@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import PlayerGame from "./Player_game"
-import socket from "../socket"
+import socket, { playerLogin, recoverSession } from "../socket"
 
 function Login(props)
 {
@@ -26,23 +26,32 @@ function Login(props)
 export default function PlayerBase()
 {
     const [loginStatus, setLoginStatus] = useState(false)
-    const [gameState, setGameState] = useState('running')
 
     function submitHandler(event)
     {
         event.preventDefault();
         const nickname = document.getElementById('nickname-input').value
         const roomId = document.getElementById('room-input').value
-        socket.nickname = nickname
-        socket.roomId = roomId
 
-        socket.emit('login', roomId)
-        setLoginStatus(true)
+        playerLogin(roomId, nickname, setLoginStatus)
     }
 
-    useEffect(() => {
+    useEffect(() =>{
+        if(sessionStorage.uniqueId){
+            
+          let restoreSession = window.confirm('An old session has been found, would you like to reload that session')
 
-    },[gameState])
+          if(restoreSession){
+            recoverSession(([setLoginStatus])=>{
+                setLoginStatus(true)
+            },setLoginStatus)
+          }
+
+        }
+
+        return () => socket.disconnect()
+        
+    },[])
 
     if(loginStatus === false)
     {    
@@ -52,9 +61,7 @@ export default function PlayerBase()
 
     }else {
         return(
-            <PlayerGame socket = {socket} 
-            gameState = {gameState} 
-            setGameState = {setGameState}/>
+            <PlayerGame/>
         )
     }
 }
