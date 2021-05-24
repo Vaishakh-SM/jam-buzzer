@@ -1,4 +1,4 @@
-import React , {useState, useEffect} from 'react'
+import React , {useState} from 'react'
 import socket, {listenForUpdates} from "../socket"
 
 function ArrayToList(props)
@@ -39,7 +39,7 @@ export default function PlayerGame(props)
         if(gameState === 'running')
         {
             socket.emit('buzz')
-            setGameState('paused') // We need to change this to backedn controlled
+            setGameState('paused')
         }
     }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import socket, {hostLogin, recoverSession} from "../socket"
+import {hostLogin, hostRecoverSession} from "../socket"
 
 export default function Host()
 {
@@ -14,7 +14,7 @@ export default function Host()
 
           if(restoreSession)
           {
-            recoverSession(([setRoomId,roomId])=>{
+            hostRecoverSession(([setRoomId,roomId])=>{
               setRoomId(roomId)
             },setRoomId,sessionStorage.getItem('roomId'))
     
@@ -24,7 +24,6 @@ export default function Host()
           }
         }
         
-        return () => socket.disconnect()
     },[])
     
     return(

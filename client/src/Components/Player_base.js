@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import PlayerGame from "./Player_game"
-import socket, { playerLogin, recoverSession } from "../socket"
+import { playerLogin, playerRecoverSession } from "../socket"
 
 function Login(props)
 {
@@ -42,14 +42,12 @@ export default function PlayerBase()
           let restoreSession = window.confirm('An old session has been found, would you like to reload that session')
 
           if(restoreSession){
-            recoverSession(([setLoginStatus])=>{
+            playerRecoverSession(([setLoginStatus])=>{
                 setLoginStatus(true)
             },setLoginStatus)
           }
 
         }
-
-        return () => socket.disconnect()
         
     },[])
 

@@ -8,122 +8,199 @@ const server = http.createServer();
 
 const io = socketIo(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: "http://localhost:3000"
     },
   });
 
-const dataStore = new Map()
-const socketStore = new Map()
+const roomStore = new Map();
+const socketStore = new Map();
+const playerStore = new Map();
 
-// Everyone has unique ID set, in both session storage and
-// backend. Now on reconnection we must re-establish it (done for host)
-// Make a commit once done for player, make frequent commits
+function updateRoomStore(roomId, attributeName, attributeValue)
+{
+  let initial = roomStore.get(roomId);
+  let updated = initial;
+  updated[attributeName] = attributeValue;
+  roomStore.set(roomId, updated);
+}
 
-// When player enters, add him in participants of the room
-// When player leaves remove
-// If 0 people in room, delete room
-// Take care of the same when recoer-session is called
+function updatePlayerStore(uniqueId, attributeName, attributeValue)
+{
+  let initial = playerStore.get(uniqueId);
+  let updated = initial;
+  updated[attributeName] = attributeValue;
+  roomStore.set(uniqueId, updated);
+}
 
+function onDisconnect(socket) {
+
+  socket.on("disconnect", () => 
+  {
+    if(socketStore.has(socket.id)) {
+
+      let uniqueId = socketStore.get(socket.id);
+      let roomId = playerStore.get(uniqueId).roomId;
+      socketStore.delete(socket.id);
+
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers - 1);
+
+      if(roomStore.get(roomId).numberOfPlayers == 0)
+      {
+        for(let redundantId in roomStore.get(roomId).players)
+        {
+          if(playerStore.has(redundantId))
+            playerStore.delete(redundantId);
+        }
+
+        roomStore.delete(roomId);
+        console.log("Deleted room ",roomId);
+      }
+    }
+
+    console.log(socket.id + " disconnected")
+  })
+}
+
+function onHostLogin(socket) {
+
+  socket.on('host-login',() => {
+    let roomId = crypto.randomBytes(16).toString("hex").substr(0,8);
+
+    while(roomStore.has(roomId))
+      roomId = crypto.randomBytes(16).toString("hex").substr(0,8);
+
+    let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+    while(playerStore.has(uniqueId))
+      uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+    roomStore.set(roomId,{
+      players : [uniqueId],
+      numberOfPlayers: 1,
+      buzzes : [],
+      timeRemaining : 60,
+      points : [],
+      host : uniqueId
+    });
+
+    
+    socketStore.set(socket.id,uniqueId);
+
+    playerStore.set(uniqueId, {
+      nickname:'host',
+      roomId:roomId,
+      points : 0
+    });
+
+    socket.join(roomId);
+    io.to(roomId).emit('host-login-success', uniqueId, roomId);
+  })
+
+}
+
+function onPlayerLogin(socket) {
+  socket.on('player-login', (socketId,roomId, nickname) => {
+
+    if(roomStore.has(roomId))
+    {
+      let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+      while(playerStore.has(uniqueId))
+        uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+      socketStore.set(socket.id,uniqueId);
+      playerStore.set(uniqueId, {
+        nickname:nickname,
+        roomId:roomId,
+        points : 0
+      });
+      
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+      updateRoomStore(roomId, 'players', roomStore.get(roomId).players.concat(uniqueId));
+
+      io.to(socketId).emit('player-login-success', uniqueId, roomId, nickname);
+      socket.join(roomId);
+    }
+    else{
+      io.to(socketId).emit('player-login-fail');
+    }
+
+  })
+
+}
+
+function onBuzz(socket) {
+  socket.on('buzz', () => {
+
+    let uniqueId = socketStore.get(socket.id);
+
+    let roomId = playerStore.get(uniqueId).roomId;
+    let nickname = playerStore.get(uniqueId).nickname;
+
+    let buzzes = roomStore.get(roomId).buzzes;
+    buzzes.push(nickname);
+
+    io.to(roomId).emit('update-buzzes', buzzes);
+})
+
+}
+
+function onRecoverSession(socket)
+{
+  socket.on('player-recover-session', (uniqueId) =>
+  {
+    if(playerStore.has(uniqueId) && 
+    roomStore.has(playerStore.get(uniqueId).roomId) &&
+    roomStore.get(playerStore.get(uniqueId).roomId).host != uniqueId)
+    {
+      let roomId = playerStore.get(uniqueId).roomId;
+      let nickname = playerStore.get(uniqueId).nickname;
+
+      socket.join(roomId);
+      socketStore.set(socket.id,uniqueId);
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+
+      io.to(roomId).emit('player-recover-session-success',uniqueId, roomId, nickname);
+    }else {
+      io.to(socket.id).emit('player-recover-session-fail');
+    }
+  })
+  
+
+  socket.on('host-recover-session', (uniqueId) =>
+  {
+    if(playerStore.has(uniqueId) && 
+    roomStore.has(playerStore.get(uniqueId).roomId) &&
+    roomStore.get(playerStore.get(uniqueId).roomId).host === uniqueId)
+    {
+      let roomId = playerStore.get(uniqueId).roomId;
+      let nickname = playerStore.get(uniqueId).nickname;
+
+      socket.join(roomId);
+      socketStore.set(socket.id,uniqueId);
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+
+      io.to(roomId).emit('host-recover-session-success',uniqueId, roomId, nickname);
+    }else {
+      io.to(socket.id).emit('host-recover-session-fail');
+    }
+  })
+
+}
 
 io.on("connection", (socket) => {
 
   console.log(socket.id + " connected ");
   
-  socket.on("disconnect", () => 
-  {
-    if(socketStore.has(socket.id))
-    {
-      socketStore.delete(socket.id)
-    }
+  onDisconnect(socket);
 
-    console.log(socket.id+ " disconnected")
-  })
+  onHostLogin(socket);
 
+  onPlayerLogin(socket);
 
-  socket.on('host-login',() => {
+  onRecoverSession(socket);
 
-    let roomId = crypto.randomBytes(16).toString("hex").substr(0,8)
-
-    while(dataStore.has(roomId))
-      roomId = crypto.randomBytes(16).toString("hex").substr(0,8)
-    
-
-
-    dataStore.set(roomId,{
-      participants :[],
-      buzzes : [],
-      timeRemaining : 60,
-      points :[],
-      host : socket.id
-    })
-
-    let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10)
-    socketStore.set(socket.id,
-      {
-        nickname : 'host',
-        roomId : roomId,
-        uniqueId : uniqueId
-      })
-
-    socket.join(roomId);
-    io.to(roomId).emit('host-login-success', roomId, uniqueId)
-  })
-
-
-  socket.on('player-login', (socketId,roomId, nickname) => {
-
-    if(dataStore.has(roomId))
-    {
-      let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
-      socketStore.set(socketId,
-        {
-          nickname : nickname,
-          roomId : roomId,
-          uniqueId : uniqueId
-        })
-
-      io.to(socketId).emit(
-      'setAttribute', 
-      socketId, 
-      {
-        'roomId': roomId,
-        'nickname' : nickname,
-        'uniqueId': uniqueId
-      })
-
-      io.to(socketId).emit('player-login-success')
-      socket.join(roomId)
-    }
-    else{
-      io.to(socketId).emit('player-login-fail')
-    }
-
-  })
-
-  socket.on('buzz', () => {
-
-      let roomId = socketStore.get(socket.id).roomId
-      let nickname = socketStore.get(socket.id).nickname
-
-      let buzzes = dataStore.get(roomId).buzzes
-      buzzes.push(nickname)
-
-      io.to(roomId).emit('update-buzzes', buzzes)
-  })
-
-  socket.on('recover-session', (uniqueId, roomId, nickname) =>
-  {
-    socket.join(roomId)
-    socketStore.set(socket.id,
-      {
-        nickname : nickname,
-        roomId : roomId,
-        uniqueId : uniqueId
-      })
-
-      io.to(roomId).emit('recover-session-success',uniqueId)
-  })
-  
+  onBuzz(socket);
 
 })
 
