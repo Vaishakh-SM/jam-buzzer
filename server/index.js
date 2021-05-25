@@ -141,6 +141,7 @@ function onBuzz(socket) {
     buzzes.push(nickname);
 
     io.to(roomId).emit('update-buzzes', buzzes);
+    io.to(roomId).emit('lock-buzzer', uniqueId);
 })
 
 }

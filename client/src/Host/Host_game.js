@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import {hostLogin, hostRecoverSession} from "../socket"
+import {hostListenForUpdates, hostLogin, hostRecoverSession} from "../socket"
+import {ArrayToList} from "../Components/toList";
 
 export default function Host()
 {
-    const [roomId, setRoomId] = useState('Loading')
-  
+    const [roomId, setRoomId] = useState('Loading');
+    const [buzzes, setBuzzes] = useState([]);
+
     useEffect(()=>{   
+
         if(!sessionStorage.uniqueId)
         {
             hostLogin(setRoomId)
@@ -26,9 +29,12 @@ export default function Host()
         
     },[])
     
+    hostListenForUpdates(setBuzzes);
+
     return(
         <div>
             <h1>Room number: {roomId}</h1>
+            <ArrayToList array = {buzzes}/>
         </div>
     )
 }

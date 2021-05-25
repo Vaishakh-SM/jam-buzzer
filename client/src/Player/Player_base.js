@@ -8,15 +8,18 @@ function Login(props)
         <div>
             <h1>Login</h1>
             <form onSubmit = {props.submitHandler}>
-                <label>
-                    Nickname
-                    <input type = "text" id="nickname-input" name = "nickname" placeholder = "Enter Nickname" required/>
-                </label>
-
-                <label>
-                    Room
-                    <input type = "text" id = "room-input" name = "room" placeholder = "Enter Nickname" required/>
-                </label>
+                <div>
+                    <label>
+                        Nickname
+                        <input type = "text" id="nickname-input" name = "nickname" placeholder = "Enter Nickname" required/>
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        Room
+                        <input type = "text" id = "room-input" name = "room" placeholder = "Enter Nickname" required/>
+                    </label>
+                </div>
                 <button type = "submit">Submit</button>
             </form>
         </div>

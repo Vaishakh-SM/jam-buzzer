@@ -1,8 +1,8 @@
 import React from "react";
 import {BrowserRouter,Switch,Route} from "react-router-dom";
-import PlayerBase from "./Components/Player_base"
-import HostGame from "./Components/Host_game"
-import Home from "./Components/Home"
+import PlayerBase from "./Player/Player_base"
+import HostGame from "./Host/Host_game"
+import Home from "./Home/Home"
 
 export default function App() {
     return(
