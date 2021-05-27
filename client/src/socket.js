@@ -1,6 +1,6 @@
 import socketIOClient from "socket.io-client";
 
-const ENDPOINT = "http://127.0.0.1:4001";
+const ENDPOINT = "http://192.168.1.4:4001";
 const HOME_PATH = 'http://localhost:3000';
 
 let socket = socketIOClient(ENDPOINT);
@@ -29,26 +29,6 @@ export function playerLogin(roomId, nickname, setLoginStatus)
     {
         alert('The room does not exist or the host has left the room');
     });
-}
-
-function playerListenForBuzz(setBuzzes, setBuzzerLock)
-{
-    socket.on('update-buzzes',(buzzes)=>{
-        setBuzzes(buzzes);
-    });
-
-    socket.on('lock-buzzer',(uniqueId)=>
-    {
-        if(socket.uniqueId === uniqueId)
-        {
-            setBuzzerLock(true);
-        }
-    })
-}
-
-export function playerListenForUpdates(...setterFunctions)
-{
-    playerListenForBuzz(setterFunctions[0], setterFunctions[1]);
 }
 
 export function playerRecoverSession(onRecover, ...args)
@@ -130,16 +110,91 @@ export function hostLogin(setRoomId)
     })
 }
 
-function hostListenForBuzz(setBuzzes, setBuzzerLock)
+// MISC
+
+export function buzzerUpdates(setBuzzerLock){
+
+    socket.on('lock-buzzer',(uniqueId)=>{
+        if(socket.uniqueId === uniqueId)
+        {
+            setBuzzerLock(true);
+        }
+    })
+
+    socket.on('unlock-buzzer',(uniqueId)=>{
+        if(socket.uniqueId === uniqueId)
+        {
+            setBuzzerLock(false);
+        }
+    })
+
+    socket.on('unlock-buzzer-all',()=>{
+        setBuzzerLock(false);
+    })
+
+    socket.on('lock-buzzer-all',()=>{
+        setBuzzerLock(true);  
+    })
+}
+
+export function timerUpdates(setTime,setIsRunning,setIsHidden)
 {
-    socket.on('update-buzzes',(buzzes)=>{
+    socket.on('start-timer-all',() =>{
+        setIsRunning(true);
+    })
+
+    socket.on('stop-timer-all', () =>{
+        setIsRunning(false);
+    })
+
+    socket.on('hide-timer-all', (hostId) =>{
+        if(socket.uniqueId !== hostId){
+            setIsHidden(true);
+        }
+    })
+
+    socket.on('unhide-timer-all', ()=>{
+        setIsHidden(false);
+    })
+
+    socket.on('set-time', (time) => {
+        setTime(time);
+    })
+}
+
+export function buzzesUpdates(setBuzzes){
+    socket.on('update-buzzes-all',(buzzes)=>{
         setBuzzes(buzzes);
     });
 }
 
-export function hostListenForUpdates(...setterFunctions)
-{
-    hostListenForBuzz(setterFunctions[0]);
+export function hostPointUpdates(setPointsMap, setCurrentSpeaker){
+    socket.on('update-points-all', (points) =>{
+        
+        let pointsMap = new Map(points);
+        setPointsMap(pointsMap);
+    })
+
+    socket.on('set-current-speaker', (nickname)=>{
+        setCurrentSpeaker(nickname);
+    })
 }
 
+// Components
+
+export function fetchPoints(setPointsMap)
+{
+    socket.emit('fetch-points');
+    socket.on('response-points', (uniqueId,points) =>{
+        if(socket.uniqueId === uniqueId){
+            setPointsMap(points);
+        }
+    })
+}
+
+socket.on('not-authorised',(uniqueId) =>{
+    if(socket.uniqueId === uniqueId){
+        alert('You are not authorised for this action');
+    }
+})
 export default socket;

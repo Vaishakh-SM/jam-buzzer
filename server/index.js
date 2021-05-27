@@ -7,9 +7,7 @@ const crypto = require("crypto");
 const server = http.createServer();
 
 const io = socketIo(server, {
-    cors: {
-      origin: "http://localhost:3000"
-    },
+    cors: {origin: "*"},
   });
 
 const roomStore = new Map();
@@ -79,8 +77,12 @@ function onHostLogin(socket) {
       numberOfPlayers: 1,
       buzzes : [],
       timeRemaining : 60,
-      points : [],
-      host : uniqueId
+      points : new Map(),
+      host : uniqueId,
+      timestamp: null,
+      weightTime: 0,
+      currentSpeaker: null,
+      gameRunning: false
     });
 
     
@@ -88,8 +90,7 @@ function onHostLogin(socket) {
 
     playerStore.set(uniqueId, {
       nickname:'host',
-      roomId:roomId,
-      points : 0
+      roomId:roomId
     });
 
     socket.join(roomId);
@@ -111,15 +112,20 @@ function onPlayerLogin(socket) {
       socketStore.set(socket.id,uniqueId);
       playerStore.set(uniqueId, {
         nickname:nickname,
-        roomId:roomId,
-        points : 0
+        roomId:roomId
       });
       
       updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
       updateRoomStore(roomId, 'players', roomStore.get(roomId).players.concat(uniqueId));
+      updateRoomStore(roomId, 'points', roomStore.get(roomId).points.set(uniqueId, 
+      {
+        nickname: nickname,
+        points: 0
+      }));
 
       io.to(socketId).emit('player-login-success', uniqueId, roomId, nickname);
       socket.join(roomId);
+      io.to(roomId).emit('update-points-all', Array.from(roomStore.get(roomId).points));
     }
     else{
       io.to(socketId).emit('player-login-fail');
@@ -140,7 +146,7 @@ function onBuzz(socket) {
     let buzzes = roomStore.get(roomId).buzzes;
     buzzes.push(nickname);
 
-    io.to(roomId).emit('update-buzzes', buzzes);
+    io.to(roomId).emit('update-buzzes-all', buzzes);
     io.to(roomId).emit('lock-buzzer', uniqueId);
 })
 
@@ -189,6 +195,71 @@ function onRecoverSession(socket)
 
 }
 
+function onHostRequest(socket) {
+
+  function getIds(){
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    let hostId = roomStore.get(roomId).host;
+    return [uniqueId, roomId, hostId];
+  }
+
+  socket.on('clear-buzzers',()=>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+
+      updateRoomStore(roomId, 'buzzes', []);
+      io.to(roomId).emit('update-buzzes-all', []);
+      io.to(roomId).emit('unlock-buzzer-all');
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+  socket.on('set-speaker', (speakerId) =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+
+      updateRoomStore(roomId, 'currentSpeaker', speakerId);
+      io.to(roomId).emit('set-current-speaker', playerStore.get(speakerId).nickname);
+
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+  socket.on('start-timer-all', () =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+      io.to(roomId).emit('start-timer-all');
+
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+  socket.on('stop-timer-all', () =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+      io.to(roomId).emit('stop-timer-all');
+
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+}
+
+function onFetch(socket){
+  socket.on('fetch-points', ()=>{
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    let points = roomStore.get(roomId).points;
+
+    io.to(roomId).emit('response-points',uniqueId ,points);
+  })
+}
+
 io.on("connection", (socket) => {
 
   console.log(socket.id + " connected ");
@@ -203,6 +274,9 @@ io.on("connection", (socket) => {
 
   onBuzz(socket);
 
+  onHostRequest(socket);
+
+  onFetch(socket);
 })
 
 

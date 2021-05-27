@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import {hostListenForUpdates, hostLogin, hostRecoverSession} from "../socket"
-import {ArrayToList} from "../Components/toList";
+import socket, {hostLogin, hostRecoverSession} from "../socket"
+import HostPointsTable from './Host_points';
+import Buzzes from '../Components/Buzzes';
+import Timer from '../Components/Timer';
+
+function clearBuzzers()
+{
+  socket.emit('clear-buzzers');
+}
 
 export default function Host()
 {
     const [roomId, setRoomId] = useState('Loading');
-    const [buzzes, setBuzzes] = useState([]);
 
     useEffect(()=>{   
 
@@ -28,13 +34,20 @@ export default function Host()
         }
         
     },[])
-    
-    hostListenForUpdates(setBuzzes);
 
     return(
         <div>
             <h1>Room number: {roomId}</h1>
-            <ArrayToList array = {buzzes}/>
+            <button onClick ={clearBuzzers}>Clear Buzzers</button>
+            <button onClick = {()=>{socket.emit('start-timer-all')}}>
+              Start timer
+            </button>
+            <button onClick = {()=>{socket.emit('stop-timer-all')}}>
+              Stop timer
+            </button>
+            <Timer startTime ={60000} isRunning ={false} isHidden = {false}/>
+            <Buzzes/>
+            <HostPointsTable/>
         </div>
     )
 }

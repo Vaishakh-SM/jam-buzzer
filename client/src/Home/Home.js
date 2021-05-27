@@ -14,6 +14,7 @@ export default function Home() {
                 <Link to = "/host">Create a room</Link>
                 </li>
             </ul>
+
           </div>
         );
 }
