@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import socket, {buzzerUpdates } from "../socket";
 
 function BuzzerDisplay(props){
@@ -16,7 +16,11 @@ function BuzzerDisplay(props){
 
 export default function Buzzer(){
     const [buzzerLock, setBuzzerLock] = useState(false);
-    buzzerUpdates(setBuzzerLock);
+    
+    useEffect(()=>{
+        buzzerUpdates(setBuzzerLock);
+    },[]);
+    
 
     function buzzHandler(event)
     {
@@ -30,7 +34,7 @@ export default function Buzzer(){
 
     return(
         <div onClick = {buzzHandler}>
-            <BuzzerDisplay/>
+            <BuzzerDisplay buzzerLock = {buzzerLock}/>
         </div>
     )
 

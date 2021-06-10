@@ -1,5 +1,5 @@
-import React, {useState} from 'react'
-import {hostPointUpdates} from "../socket";
+import React, {useEffect, useState} from 'react'
+import { hostPointUpdates } from "../socket";
 import { HostPointsToList } from '../Components/To_list';
 import socket from "../socket";
 
@@ -18,6 +18,7 @@ function onSelect(event){
 }
 
 function selectSpeaker(event){
+    event.preventDefault();
     socket.emit('set-speaker', selectedPerson);
 }
 
@@ -25,13 +26,19 @@ export default function HostPointsTable()
 {
     const [pointsMap, setPointsMap] = useState(new Map());
     const [currentSpeaker, setCurrentSpeaker] = useState('NA');
-    hostPointUpdates(setPointsMap, setCurrentSpeaker);
+    
+    useEffect(()=>{
+        hostPointUpdates(setPointsMap, setCurrentSpeaker);
+    }, []);
 
     return(
         <div>
             <h1>Current speaker : {currentSpeaker}</h1>
-            <HostPointsToList map = {pointsMap} onClick = {onSelect}/>
+            <HostPointsToList points = {pointsMap} onClick = {onSelect}/>
             <button onClick ={selectSpeaker}>Set as speaker</button>
         </div>
     );
 }
+
+// Make it such that selected person is red or shown as selected on screen.
+// This is so that on recovery also we can see, instead of using the manual js script.

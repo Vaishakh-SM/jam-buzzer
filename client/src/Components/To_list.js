@@ -11,11 +11,11 @@ export function ArrayToList(props){
     );
 }
 
-export function MapToList(props){
+export function PlayerPointsToList(props){
     let listItems = [];
 
-    props.map.forEach((value, key) =>{
-        let elem = (<li>{key} {'->'} {value}</li>);
+    props.points.forEach((value, key) =>{
+        let elem = (<li key ={key}>{value.nickname} {'->'} {value.points}</li>);
         listItems.push(elem);
     })
 
@@ -27,7 +27,7 @@ export function MapToList(props){
 export function HostPointsToList(props){
     let listItems = [];
 
-    props.map.forEach((value, key) =>{
+    props.points.forEach((value, key) =>{
         let elem = (<li key ={key} value = {key} onClick = {props.onClick}>{value.nickname} {":"} {value.points}</li>);
         listItems.push(elem);
     })

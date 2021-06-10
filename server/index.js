@@ -17,17 +17,41 @@ const playerStore = new Map();
 function updateRoomStore(roomId, attributeName, attributeValue)
 {
   let initial = roomStore.get(roomId);
-  let updated = initial;
-  updated[attributeName] = attributeValue;
-  roomStore.set(roomId, updated);
+  initial[attributeName] = attributeValue;
+  roomStore.set(roomId, initial);
 }
 
-function updatePlayerStore(uniqueId, attributeName, attributeValue)
-{
-  let initial = playerStore.get(uniqueId);
-  let updated = initial;
-  updated[attributeName] = attributeValue;
-  roomStore.set(uniqueId, updated);
+function playerGetAllComponents(uniqueId, roomId, buzzes, time, points, buzzerLocked){
+
+  io.to(roomId).emit('update-buzzes',uniqueId,buzzes);
+
+  if(buzzerLocked === true){
+    io.to(roomId).emit('lock-buzzer',uniqueId);
+  } else {
+    io.to(roomId).emit('unlock-buzzer',uniqueId)
+  }
+
+  if(roomStore.get(roomId).gameRunning === true){
+    io.to(roomId).emit('start-timer',uniqueId);
+
+    let currentTime = Date.now();
+    let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+    currentTime - roomStore.get(roomId).timestamp);
+    let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+    
+    io.to(roomId).emit('set-time',uniqueId, timeLeft);
+
+  } else {
+    io.to(roomId).emit('set-time',uniqueId, time);
+  } 
+
+  io.to(roomId).emit('update-points', uniqueId, Array.from(points));
+}
+
+function hostGetAllComponents(uniqueId, roomId, buzzes, time, points){
+  io.to(roomId).emit('update-buzzes',uniqueId,buzzes);
+  io.to(roomId).emit('set-time',uniqueId, time);
+  io.to(roomId).emit('update-points', uniqueId, Array.from(points));
 }
 
 function onDisconnect(socket) {
@@ -76,13 +100,14 @@ function onHostLogin(socket) {
       players : [uniqueId],
       numberOfPlayers: 1,
       buzzes : [],
-      timeRemaining : 60,
+      timeRemaining : 60000,
       points : new Map(),
       host : uniqueId,
       timestamp: null,
       weightTime: 0,
       currentSpeaker: null,
-      gameRunning: false
+      gameRunning: false,
+      buzzerLocked : new Set()
     });
 
     
@@ -108,6 +133,8 @@ function onPlayerLogin(socket) {
 
       while(playerStore.has(uniqueId))
         uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+      
+      nickname = nickname + '#' + uniqueId.substr(7,10);
 
       socketStore.set(socket.id,uniqueId);
       playerStore.set(uniqueId, {
@@ -137,17 +164,46 @@ function onPlayerLogin(socket) {
 
 function onBuzz(socket) {
   socket.on('buzz', () => {
-
     let uniqueId = socketStore.get(socket.id);
-
     let roomId = playerStore.get(uniqueId).roomId;
     let nickname = playerStore.get(uniqueId).nickname;
+    console.log(uniqueId, "Has buzzed ");
+    console.log("Exists in buzzerlocked? ", roomStore.get(roomId).buzzerLocked.has(uniqueId));
+    console.log(roomStore);
+    if(roomStore.get(roomId).buzzerLocked.has(uniqueId) === false){
+      let buzzes = roomStore.get(roomId).buzzes;
+      buzzes.push(nickname);
 
-    let buzzes = roomStore.get(roomId).buzzes;
-    buzzes.push(nickname);
+      io.to(roomId).emit('update-buzzes-all', buzzes);
+      io.to(roomId).emit('lock-buzzer', uniqueId);
 
-    io.to(roomId).emit('update-buzzes-all', buzzes);
-    io.to(roomId).emit('lock-buzzer', uniqueId);
+      if(roomStore.get(roomId).gameRunning === true){
+          let currentTime = Date.now();
+          io.to(roomId).emit('stop-timer-all');
+          let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+          currentTime - roomStore.get(roomId).timestamp);
+
+          let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+          let currentPoints = roomStore.get(roomId).points;
+          let currentSpeaker = roomStore.get(roomId).currentSpeaker;
+          let currentSpeakerPoints = currentPoints.get(currentSpeaker).points;
+          let weightTime = roomStore.get(roomId).weightTime;
+
+          let finalPoints = currentPoints.set(currentSpeaker,
+            {
+              nickname:playerStore.get(currentSpeaker).nickname,
+              points: currentSpeakerPoints + Math.max(0, Math.min(roomStore.get(roomId).timeRemaining,
+              (elapsedTime - weightTime)/1000))
+            });
+
+          updateRoomStore(roomId, 'timeRemaining', timeLeft);
+          updateRoomStore(roomId, 'gameRunning', false);
+          io.to(roomId).emit('set-time-all',timeLeft);
+          io.to(roomId).emit('update-points-all', Array.from(finalPoints));
+      }
+      updateRoomStore(roomId, 'buzzerLocked', roomStore.get(roomId).buzzerLocked.add(uniqueId));
+    }
+    
 })
 
 }
@@ -167,15 +223,16 @@ function onRecoverSession(socket)
       socketStore.set(socket.id,uniqueId);
       updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
 
-      io.to(roomId).emit('player-recover-session-success',uniqueId, roomId, nickname);
+      io.to(roomId).emit('player-recover-session-success',uniqueId, roomId, nickname); 
+     
+
     }else {
       io.to(socket.id).emit('player-recover-session-fail');
     }
   })
   
 
-  socket.on('host-recover-session', (uniqueId) =>
-  {
+  socket.on('host-recover-session', (uniqueId) => {
     if(playerStore.has(uniqueId) && 
     roomStore.has(playerStore.get(uniqueId).roomId) &&
     roomStore.get(playerStore.get(uniqueId).roomId).host === uniqueId)
@@ -186,8 +243,8 @@ function onRecoverSession(socket)
       socket.join(roomId);
       socketStore.set(socket.id,uniqueId);
       updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
-
       io.to(roomId).emit('host-recover-session-success',uniqueId, roomId, nickname);
+
     }else {
       io.to(socket.id).emit('host-recover-session-fail');
     }
@@ -204,11 +261,12 @@ function onHostRequest(socket) {
     return [uniqueId, roomId, hostId];
   }
 
-  socket.on('clear-buzzers',()=>{
+  socket.on('clear-buzzers-all',()=>{
     [uniqueId, roomId, hostId] = getIds();
     if(uniqueId === hostId){
 
       updateRoomStore(roomId, 'buzzes', []);
+      updateRoomStore(roomId, 'buzzerLocked', new Set());
       io.to(roomId).emit('update-buzzes-all', []);
       io.to(roomId).emit('unlock-buzzer-all');
     }else {
@@ -230,33 +288,81 @@ function onHostRequest(socket) {
 
   socket.on('start-timer-all', () =>{
     [uniqueId, roomId, hostId] = getIds();
-    if(uniqueId === hostId){
-      io.to(roomId).emit('start-timer-all');
 
-    }else {
-      io.to(roomId).emit('not-authorised',uniqueId);
-    }
+    if(roomStore.get(roomId).gameRunning === false){
+        if(uniqueId === hostId){
+          if(roomStore.get(roomId).currentSpeaker !== null)
+          {
+            updateRoomStore(roomId, 'timestamp', Date.now());
+            updateRoomStore(roomId, 'gameRunning', true);
+            io.to(roomId).emit('start-timer-all');
+
+          } else {
+            io.to(roomId).emit('start-timer-failed',uniqueId);
+          }
+
+        } else {
+          io.to(roomId).emit('not-authorised',uniqueId);
+        }
+      }
   })
 
   socket.on('stop-timer-all', () =>{
     [uniqueId, roomId, hostId] = getIds();
-    if(uniqueId === hostId){
-      io.to(roomId).emit('stop-timer-all');
 
-    }else {
-      io.to(roomId).emit('not-authorised',uniqueId);
+    if(roomStore.get(roomId).gameRunning === true)
+    {
+      if(uniqueId === hostId){
+
+        let currentTime = Date.now();
+        io.to(roomId).emit('stop-timer-all');
+
+        let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+        currentTime - roomStore.get(roomId).timestamp);
+
+        let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+
+        let currentPoints = roomStore.get(roomId).points;
+        let currentSpeaker = roomStore.get(roomId).currentSpeaker;
+        let currentSpeakerPoints = currentPoints.get(currentSpeaker).points;
+        let weightTime = roomStore.get(roomId).weightTime;
+
+        let finalPoints = currentPoints.set(currentSpeaker,
+          {
+            nickname:playerStore.get(currentSpeaker).nickname,
+            points: currentSpeakerPoints + Math.max(0, (elapsedTime - weightTime)/1000)
+          });
+
+        updateRoomStore(roomId, 'timeRemaining', timeLeft);
+        io.to(roomId).emit('set-time-all',timeLeft);
+        io.to(roomId).emit('update-points-all', Array.from(finalPoints));
+        updateRoomStore(roomId, 'gameRunning', false);
+      }else {
+        io.to(roomId).emit('not-authorised',uniqueId);
+      }
     }
+
   })
 
 }
 
-function onFetch(socket){
-  socket.on('fetch-points', ()=>{
+function onPlayerFetch(socket){
+  socket.on('player-fetch-components', () =>{
     let uniqueId = socketStore.get(socket.id);
     let roomId = playerStore.get(uniqueId).roomId;
-    let points = roomStore.get(roomId).points;
+  
+      playerGetAllComponents(uniqueId, roomId, roomStore.get(roomId).buzzes,
+    roomStore.get(roomId).timeRemaining, roomStore.get(roomId).points,
+    roomStore.get(roomId).buzzerLocked.has(uniqueId));
+  })
+}
 
-    io.to(roomId).emit('response-points',uniqueId ,points);
+function onHostFetch(socket){
+  socket.on('host-fetch-components', () =>{
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    hostGetAllComponents(uniqueId, roomId, roomStore.get(roomId).buzzes,
+    roomStore.get(roomId).timeRemaining, roomStore.get(roomId).points);
   })
 }
 
@@ -276,7 +382,9 @@ io.on("connection", (socket) => {
 
   onHostRequest(socket);
 
-  onFetch(socket);
+  onPlayerFetch(socket);
+
+  onHostFetch(socket);
 })
 
 

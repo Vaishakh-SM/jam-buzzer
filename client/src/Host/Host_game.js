@@ -6,7 +6,7 @@ import Timer from '../Components/Timer';
 
 function clearBuzzers()
 {
-  socket.emit('clear-buzzers');
+  socket.emit('clear-buzzers-all');
 }
 
 export default function Host()
@@ -45,7 +45,7 @@ export default function Host()
             <button onClick = {()=>{socket.emit('stop-timer-all')}}>
               Stop timer
             </button>
-            <Timer startTime ={60000} isRunning ={false} isHidden = {false}/>
+            <Timer/>
             <Buzzes/>
             <HostPointsTable/>
         </div>

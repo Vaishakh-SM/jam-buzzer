@@ -11,7 +11,7 @@ export default function Home() {
                 </li>
                 
                 <li>
-                <Link to = "/host">Create a room</Link>
+                  <Link to = "/host">Create a room</Link>
                 </li>
             </ul>
 

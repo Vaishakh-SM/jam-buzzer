@@ -1,12 +1,18 @@
 import React, {useState, useEffect} from 'react'
-import {fetchPoints} from "../socket";
+import { PlayerPointsToList } from '../Components/To_list';
+import { playerPointUpdates } from '../socket';
 
-function PlayerPointsTable()
+export default function PlayerPointsTable()
 {
     const [pointsMap, setPointsMap] = useState(new Map());
 
     useEffect(() =>{
-        fetchPoints(setPointsMap);
+        playerPointUpdates(setPointsMap);
     },[]);
 
+    return(
+        <div>
+            <PlayerPointsToList points = {pointsMap}/>
+        </div>
+    )
 }

@@ -1,7 +1,8 @@
 import React, {useState, useEffect} from 'react'
 import {timerUpdates} from "../socket";
 
-const LEAST_COUNT = 10; 
+const LEAST_COUNT = 100; 
+let timeoutId;
 
 function TimeToString(props)
 {
@@ -26,22 +27,27 @@ function TimeToString(props)
     );
 }
 
-export default function Timer(props)
+
+export default function Timer()
 {
 
-  const [time, setTime] = useState(props.startTime);
-  const [isRunning, setIsRunning] = useState(props.isRunning);
-  const [isHidden, setIsHidden] = useState(props.isHidden);
+  const [time, setTime] = useState(60000);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
-  useEffect(() => 
-  {
+  useEffect( ()=>{
+    timerUpdates(setTime, setIsRunning, setIsHidden);
+  },[]);
+
+  useEffect(() => {
+   
     if(isRunning === true && time > 0)
     {
-        setTimeout(setTime,LEAST_COUNT,Math.max(0, time - LEAST_COUNT));
+        timeoutId = setInterval(setTime,LEAST_COUNT,Math.max(0, time - LEAST_COUNT));
     }
-  })
 
-  timerUpdates(setTime, setIsRunning, setIsHidden);
+    return () => clearInterval(timeoutId);
+  },[time, isRunning]);
 
   if(isHidden === false)
   {
