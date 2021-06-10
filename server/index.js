@@ -7,124 +7,384 @@ const crypto = require("crypto");
 const server = http.createServer();
 
 const io = socketIo(server, {
-    cors: {
-      origin: "http://localhost:3000",
-    },
+    cors: {origin: "*"},
   });
 
-const dataStore = new Map()
-const socketStore = new Map()
+const roomStore = new Map();
+const socketStore = new Map();
+const playerStore = new Map();
 
-// Everyone has unique ID set, in both session storage and
-// backend. Now on reconnection we must re-establish it (done for host)
-// Make a commit once done for player, make frequent commits
+function updateRoomStore(roomId, attributeName, attributeValue)
+{
+  let initial = roomStore.get(roomId);
+  initial[attributeName] = attributeValue;
+  roomStore.set(roomId, initial);
+}
 
-// When player enters, add him in participants of the room
-// When player leaves remove
-// If 0 people in room, delete room
-// Take care of the same when recoer-session is called
+function playerGetAllComponents(uniqueId, roomId, buzzes, time, points, buzzerLocked){
 
+  io.to(roomId).emit('update-buzzes',uniqueId,buzzes);
+
+  if(buzzerLocked === true){
+    io.to(roomId).emit('lock-buzzer',uniqueId);
+  } else {
+    io.to(roomId).emit('unlock-buzzer',uniqueId)
+  }
+
+  if(roomStore.get(roomId).gameRunning === true){
+    io.to(roomId).emit('start-timer',uniqueId);
+
+    let currentTime = Date.now();
+    let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+    currentTime - roomStore.get(roomId).timestamp);
+    let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+    
+    io.to(roomId).emit('set-time',uniqueId, timeLeft);
+
+  } else {
+    io.to(roomId).emit('set-time',uniqueId, time);
+  } 
+
+  io.to(roomId).emit('update-points', uniqueId, Array.from(points));
+}
+
+function hostGetAllComponents(uniqueId, roomId, buzzes, time, points){
+  io.to(roomId).emit('update-buzzes',uniqueId,buzzes);
+  io.to(roomId).emit('set-time',uniqueId, time);
+  io.to(roomId).emit('update-points', uniqueId, Array.from(points));
+}
+
+function onDisconnect(socket) {
+
+  socket.on("disconnect", () => 
+  {
+    if(socketStore.has(socket.id)) {
+
+      let uniqueId = socketStore.get(socket.id);
+      let roomId = playerStore.get(uniqueId).roomId;
+      socketStore.delete(socket.id);
+
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers - 1);
+
+      if(roomStore.get(roomId).numberOfPlayers == 0)
+      {
+        for(let redundantId in roomStore.get(roomId).players)
+        {
+          if(playerStore.has(redundantId))
+            playerStore.delete(redundantId);
+        }
+
+        roomStore.delete(roomId);
+        console.log("Deleted room ",roomId);
+      }
+    }
+
+    console.log(socket.id + " disconnected")
+  })
+}
+
+function onHostLogin(socket) {
+
+  socket.on('host-login',() => {
+    let roomId = crypto.randomBytes(16).toString("hex").substr(0,8);
+
+    while(roomStore.has(roomId))
+      roomId = crypto.randomBytes(16).toString("hex").substr(0,8);
+
+    let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+    while(playerStore.has(uniqueId))
+      uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+    roomStore.set(roomId,{
+      players : [uniqueId],
+      numberOfPlayers: 1,
+      buzzes : [],
+      timeRemaining : 60000,
+      points : new Map(),
+      host : uniqueId,
+      timestamp: null,
+      weightTime: 0,
+      currentSpeaker: null,
+      gameRunning: false,
+      buzzerLocked : new Set()
+    });
+
+    
+    socketStore.set(socket.id,uniqueId);
+
+    playerStore.set(uniqueId, {
+      nickname:'host',
+      roomId:roomId
+    });
+
+    socket.join(roomId);
+    io.to(roomId).emit('host-login-success', uniqueId, roomId);
+  })
+
+}
+
+function onPlayerLogin(socket) {
+  socket.on('player-login', (socketId,roomId, nickname) => {
+
+    if(roomStore.has(roomId))
+    {
+      let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+
+      while(playerStore.has(uniqueId))
+        uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
+      
+      nickname = nickname + '#' + uniqueId.substr(7,10);
+
+      socketStore.set(socket.id,uniqueId);
+      playerStore.set(uniqueId, {
+        nickname:nickname,
+        roomId:roomId
+      });
+      
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+      updateRoomStore(roomId, 'players', roomStore.get(roomId).players.concat(uniqueId));
+      updateRoomStore(roomId, 'points', roomStore.get(roomId).points.set(uniqueId, 
+      {
+        nickname: nickname,
+        points: 0
+      }));
+
+      io.to(socketId).emit('player-login-success', uniqueId, roomId, nickname);
+      socket.join(roomId);
+      io.to(roomId).emit('update-points-all', Array.from(roomStore.get(roomId).points));
+    }
+    else{
+      io.to(socketId).emit('player-login-fail');
+    }
+
+  })
+
+}
+
+function onBuzz(socket) {
+  socket.on('buzz', () => {
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    let nickname = playerStore.get(uniqueId).nickname;
+    console.log(uniqueId, "Has buzzed ");
+    console.log("Exists in buzzerlocked? ", roomStore.get(roomId).buzzerLocked.has(uniqueId));
+    console.log(roomStore);
+    if(roomStore.get(roomId).buzzerLocked.has(uniqueId) === false){
+      let buzzes = roomStore.get(roomId).buzzes;
+      buzzes.push(nickname);
+
+      io.to(roomId).emit('update-buzzes-all', buzzes);
+      io.to(roomId).emit('lock-buzzer', uniqueId);
+
+      if(roomStore.get(roomId).gameRunning === true){
+          let currentTime = Date.now();
+          io.to(roomId).emit('stop-timer-all');
+          let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+          currentTime - roomStore.get(roomId).timestamp);
+
+          let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+          let currentPoints = roomStore.get(roomId).points;
+          let currentSpeaker = roomStore.get(roomId).currentSpeaker;
+          let currentSpeakerPoints = currentPoints.get(currentSpeaker).points;
+          let weightTime = roomStore.get(roomId).weightTime;
+
+          let finalPoints = currentPoints.set(currentSpeaker,
+            {
+              nickname:playerStore.get(currentSpeaker).nickname,
+              points: currentSpeakerPoints + Math.max(0, Math.min(roomStore.get(roomId).timeRemaining,
+              (elapsedTime - weightTime)/1000))
+            });
+
+          updateRoomStore(roomId, 'timeRemaining', timeLeft);
+          updateRoomStore(roomId, 'gameRunning', false);
+          io.to(roomId).emit('set-time-all',timeLeft);
+          io.to(roomId).emit('update-points-all', Array.from(finalPoints));
+      }
+      updateRoomStore(roomId, 'buzzerLocked', roomStore.get(roomId).buzzerLocked.add(uniqueId));
+    }
+    
+})
+
+}
+
+function onRecoverSession(socket)
+{
+  socket.on('player-recover-session', (uniqueId) =>
+  {
+    if(playerStore.has(uniqueId) && 
+    roomStore.has(playerStore.get(uniqueId).roomId) &&
+    roomStore.get(playerStore.get(uniqueId).roomId).host != uniqueId)
+    {
+      let roomId = playerStore.get(uniqueId).roomId;
+      let nickname = playerStore.get(uniqueId).nickname;
+
+      socket.join(roomId);
+      socketStore.set(socket.id,uniqueId);
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+
+      io.to(roomId).emit('player-recover-session-success',uniqueId, roomId, nickname); 
+     
+
+    }else {
+      io.to(socket.id).emit('player-recover-session-fail');
+    }
+  })
+  
+
+  socket.on('host-recover-session', (uniqueId) => {
+    if(playerStore.has(uniqueId) && 
+    roomStore.has(playerStore.get(uniqueId).roomId) &&
+    roomStore.get(playerStore.get(uniqueId).roomId).host === uniqueId)
+    {
+      let roomId = playerStore.get(uniqueId).roomId;
+      let nickname = playerStore.get(uniqueId).nickname;
+
+      socket.join(roomId);
+      socketStore.set(socket.id,uniqueId);
+      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+      io.to(roomId).emit('host-recover-session-success',uniqueId, roomId, nickname);
+
+    }else {
+      io.to(socket.id).emit('host-recover-session-fail');
+    }
+  })
+
+}
+
+function onHostRequest(socket) {
+
+  function getIds(){
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    let hostId = roomStore.get(roomId).host;
+    return [uniqueId, roomId, hostId];
+  }
+
+  socket.on('clear-buzzers-all',()=>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+
+      updateRoomStore(roomId, 'buzzes', []);
+      updateRoomStore(roomId, 'buzzerLocked', new Set());
+      io.to(roomId).emit('update-buzzes-all', []);
+      io.to(roomId).emit('unlock-buzzer-all');
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+  socket.on('set-speaker', (speakerId) =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId){
+
+      updateRoomStore(roomId, 'currentSpeaker', speakerId);
+      io.to(roomId).emit('set-current-speaker', playerStore.get(speakerId).nickname);
+
+    }else {
+      io.to(roomId).emit('not-authorised',uniqueId);
+    }
+  })
+
+  socket.on('start-timer-all', () =>{
+    [uniqueId, roomId, hostId] = getIds();
+
+    if(roomStore.get(roomId).gameRunning === false){
+        if(uniqueId === hostId){
+          if(roomStore.get(roomId).currentSpeaker !== null)
+          {
+            updateRoomStore(roomId, 'timestamp', Date.now());
+            updateRoomStore(roomId, 'gameRunning', true);
+            io.to(roomId).emit('start-timer-all');
+
+          } else {
+            io.to(roomId).emit('start-timer-failed',uniqueId);
+          }
+
+        } else {
+          io.to(roomId).emit('not-authorised',uniqueId);
+        }
+      }
+  })
+
+  socket.on('stop-timer-all', () =>{
+    [uniqueId, roomId, hostId] = getIds();
+
+    if(roomStore.get(roomId).gameRunning === true)
+    {
+      if(uniqueId === hostId){
+
+        let currentTime = Date.now();
+        io.to(roomId).emit('stop-timer-all');
+
+        let elapsedTime = Math.min(roomStore.get(roomId).timeRemaining,
+        currentTime - roomStore.get(roomId).timestamp);
+
+        let timeLeft = Math.max(0,roomStore.get(roomId).timeRemaining - elapsedTime);
+
+        let currentPoints = roomStore.get(roomId).points;
+        let currentSpeaker = roomStore.get(roomId).currentSpeaker;
+        let currentSpeakerPoints = currentPoints.get(currentSpeaker).points;
+        let weightTime = roomStore.get(roomId).weightTime;
+
+        let finalPoints = currentPoints.set(currentSpeaker,
+          {
+            nickname:playerStore.get(currentSpeaker).nickname,
+            points: currentSpeakerPoints + Math.max(0, (elapsedTime - weightTime)/1000)
+          });
+
+        updateRoomStore(roomId, 'timeRemaining', timeLeft);
+        io.to(roomId).emit('set-time-all',timeLeft);
+        io.to(roomId).emit('update-points-all', Array.from(finalPoints));
+        updateRoomStore(roomId, 'gameRunning', false);
+      }else {
+        io.to(roomId).emit('not-authorised',uniqueId);
+      }
+    }
+
+  })
+
+}
+
+function onPlayerFetch(socket){
+  socket.on('player-fetch-components', () =>{
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+  
+      playerGetAllComponents(uniqueId, roomId, roomStore.get(roomId).buzzes,
+    roomStore.get(roomId).timeRemaining, roomStore.get(roomId).points,
+    roomStore.get(roomId).buzzerLocked.has(uniqueId));
+  })
+}
+
+function onHostFetch(socket){
+  socket.on('host-fetch-components', () =>{
+    let uniqueId = socketStore.get(socket.id);
+    let roomId = playerStore.get(uniqueId).roomId;
+    hostGetAllComponents(uniqueId, roomId, roomStore.get(roomId).buzzes,
+    roomStore.get(roomId).timeRemaining, roomStore.get(roomId).points);
+  })
+}
 
 io.on("connection", (socket) => {
 
   console.log(socket.id + " connected ");
   
-  socket.on("disconnect", () => 
-  {
-    if(socketStore.has(socket.id))
-    {
-      socketStore.delete(socket.id)
-    }
+  onDisconnect(socket);
 
-    console.log(socket.id+ " disconnected")
-  })
+  onHostLogin(socket);
 
+  onPlayerLogin(socket);
 
-  socket.on('host-login',() => {
+  onRecoverSession(socket);
 
-    let roomId = crypto.randomBytes(16).toString("hex").substr(0,8)
+  onBuzz(socket);
 
-    while(dataStore.has(roomId))
-      roomId = crypto.randomBytes(16).toString("hex").substr(0,8)
-    
+  onHostRequest(socket);
 
+  onPlayerFetch(socket);
 
-    dataStore.set(roomId,{
-      participants :[],
-      buzzes : [],
-      timeRemaining : 60,
-      points :[],
-      host : socket.id
-    })
-
-    let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10)
-    socketStore.set(socket.id,
-      {
-        nickname : 'host',
-        roomId : roomId,
-        uniqueId : uniqueId
-      })
-
-    socket.join(roomId);
-    io.to(roomId).emit('host-login-success', roomId, uniqueId)
-  })
-
-
-  socket.on('player-login', (socketId,roomId, nickname) => {
-
-    if(dataStore.has(roomId))
-    {
-      let uniqueId = crypto.randomBytes(16).toString("hex").substr(0,10);
-      socketStore.set(socketId,
-        {
-          nickname : nickname,
-          roomId : roomId,
-          uniqueId : uniqueId
-        })
-
-      io.to(socketId).emit(
-      'setAttribute', 
-      socketId, 
-      {
-        'roomId': roomId,
-        'nickname' : nickname,
-        'uniqueId': uniqueId
-      })
-
-      io.to(socketId).emit('player-login-success')
-      socket.join(roomId)
-    }
-    else{
-      io.to(socketId).emit('player-login-fail')
-    }
-
-  })
-
-  socket.on('buzz', () => {
-
-      let roomId = socketStore.get(socket.id).roomId
-      let nickname = socketStore.get(socket.id).nickname
-
-      let buzzes = dataStore.get(roomId).buzzes
-      buzzes.push(nickname)
-
-      io.to(roomId).emit('update-buzzes', buzzes)
-  })
-
-  socket.on('recover-session', (uniqueId, roomId, nickname) =>
-  {
-    socket.join(roomId)
-    socketStore.set(socket.id,
-      {
-        nickname : nickname,
-        roomId : roomId,
-        uniqueId : uniqueId
-      })
-
-      io.to(roomId).emit('recover-session-success',uniqueId)
-  })
-  
-
+  onHostFetch(socket);
 })
 
 
