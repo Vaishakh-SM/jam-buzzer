@@ -3,6 +3,7 @@ import socket, {hostLogin, hostRecoverSession} from "../socket"
 import HostPointsTable from './Host_points';
 import Buzzes from '../Components/Buzzes';
 import Timer from '../Components/Timer';
+import { Box, Button, Collapsible, Heading } from 'grommet';
 
 function clearBuzzers()
 {
@@ -12,6 +13,7 @@ function clearBuzzers()
 export default function Host()
 {
     const [roomId, setRoomId] = useState('Loading');
+    const [showSideBar, setShowSideBar] = useState(true);
 
     useEffect(()=>{   
 
@@ -36,18 +38,33 @@ export default function Host()
     },[])
 
     return(
-        <div>
-            <h1>Room number: {roomId}</h1>
-            <button onClick ={clearBuzzers}>Clear Buzzers</button>
-            <button onClick = {()=>{socket.emit('start-timer-all')}}>
-              Start timer
-            </button>
-            <button onClick = {()=>{socket.emit('stop-timer-all')}}>
-              Stop timer
-            </button>
-            <Timer/>
-            <Buzzes/>
-            <HostPointsTable/>
-        </div>
+        <Box direction = "row">
+            <Box 
+            flex = {{grow : 1}}
+            >
+              <h1>Room number: {roomId}</h1>
+              
+              <Button onClick ={clearBuzzers}>Clear Buzzers</Button>
+              <Button onClick = {()=>{socket.emit('start-timer-all')}}>
+                Start timer
+              </Button>
+              <Button onClick = {()=>{socket.emit('stop-timer-all')}}>
+                Stop timer
+              </Button>
+              <Timer/>
+              <Buzzes/>
+              <HostPointsTable/>
+            </Box>  
+            <button onClick = {() =>{setShowSideBar(!showSideBar)}}>Toggle</button>
+            <Collapsible
+            direction = "horizontal"
+            open = {showSideBar}>
+              <Box 
+              flex = {{grow : 1}}
+              > 
+                <Heading>Lmao</Heading>
+              </Box>
+            </Collapsible>
+        </Box>
     )
 }

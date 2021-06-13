@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react'
-import { PlayerPointsToList } from '../Components/To_list';
+import { PlayerPointsToTable } from '../Components/To_list';
 import { playerPointUpdates } from '../socket';
 
 export default function PlayerPointsTable()
@@ -12,7 +12,7 @@ export default function PlayerPointsTable()
 
     return(
         <div>
-            <PlayerPointsToList points = {pointsMap}/>
+            <PlayerPointsToTable points = {pointsMap}/>
         </div>
     )
 }

@@ -1,28 +1,46 @@
-import React, { useEffect, useState } from 'react'
-import PlayerGame from "./Player_game"
-import { playerLogin, playerRecoverSession } from "../socket"
+import React, { useEffect, useState } from 'react';
+import PlayerGame from "./Player_game";
+import { playerLogin, playerRecoverSession } from "../socket";
+import { Form, FormField, TextInput, Box, Button, Heading, Header } from 'grommet';
+import {Home} from 'grommet-icons';
+import {useHistory} from 'react-router-dom';
 
 function Login(props)
 {
+    const [value, setValue] = React.useState({});
+    let history = useHistory();
     return(
-        <div>
-            <h1>Login</h1>
-            <form onSubmit = {props.submitHandler}>
-                <div>
-                    <label>
-                        Nickname
-                        <input type = "text" id="nickname-input" name = "nickname" placeholder = "Enter Nickname" required/>
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        Room
-                        <input type = "text" id = "room-input" name = "room" placeholder = "Enter Nickname" required/>
-                    </label>
-                </div>
-                <button type = "submit">Submit</button>
-            </form>
-        </div>
+        <Box>
+            <Header border = {{side : "bottom"}}>
+                <Button icon={<Home/>} hoverIndicator onClick = {() => {
+                    history.push("/")
+                }}/>
+            </Header>
+            <Box fill = "true" pad = "medium">
+                <Heading>Login</Heading>
+                <Form
+                value={value}
+                onChange={nextValue => setValue(nextValue)}
+                onReset={() => setValue({})}
+                onSubmit={({ value }) => {
+                    props.submitHandler(value.roomId, value.nickname);
+                }}
+                >
+                <FormField name="nickname" htmlFor="text-input-id" label="Nickname">
+                    <TextInput id="nickname" name="nickname" />
+                </FormField>
+
+                <FormField name="roomId" htmlFor="text-input-id" label="Room ID">
+                    <TextInput id="roomId" name="roomId" />
+                </FormField>
+
+                <Box direction="row" gap="medium">
+                    <Button type="submit" primary label="Submit" />
+                    <Button type="reset" label="Reset" />
+                </Box>
+                </Form>
+            </Box>
+        </Box>
     )
 }
 
@@ -30,12 +48,8 @@ export default function PlayerBase()
 {
     const [loginStatus, setLoginStatus] = useState(false)
 
-    function submitHandler(event)
+    function submitHandler(roomId, nickname)
     {
-        event.preventDefault();
-        const nickname = document.getElementById('nickname-input').value
-        const roomId = document.getElementById('room-input').value
-
         playerLogin(roomId, nickname, setLoginStatus)
     }
 

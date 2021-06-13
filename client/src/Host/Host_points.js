@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import { hostPointUpdates } from "../socket";
-import { HostPointsToList } from '../Components/To_list';
+import { HostPointsToTable } from '../Components/To_list';
 import socket from "../socket";
 
 let selectedPerson = 'NA'
@@ -34,7 +34,7 @@ export default function HostPointsTable()
     return(
         <div>
             <h1>Current speaker : {currentSpeaker}</h1>
-            <HostPointsToList points = {pointsMap} onClick = {onSelect}/>
+            <HostPointsToTable points = {pointsMap} onClick = {onSelect}/>
             <button onClick ={selectSpeaker}>Set as speaker</button>
         </div>
     );

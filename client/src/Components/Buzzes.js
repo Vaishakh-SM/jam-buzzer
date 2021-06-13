@@ -1,3 +1,4 @@
+import { Box, Text } from 'grommet';
 import React, {useEffect, useState} from 'react'
 import {buzzesUpdates} from '../socket';
 import {ArrayToList} from "./To_list";
@@ -10,6 +11,9 @@ export default function Buzzes(){
     },[]);
     
     return(
-        <ArrayToList array = {buzzes}/>
+        <Box>
+            <Text weight="bold">Buzzes</Text>
+            <ArrayToList array = {buzzes}/>
+        </Box>
     )
 }

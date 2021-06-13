@@ -1,3 +1,4 @@
+import { Box, Heading } from 'grommet';
 import React, {useState, useEffect} from 'react'
 import {timerUpdates} from "../socket";
 
@@ -21,9 +22,13 @@ function TimeToString(props)
     let finalTime = '' + minutes + ':' + seconds +':' + milliseconds;
 
     return (
-        <h1>
-        {finalTime}
-        </h1>
+        <Box 
+        border = "true" 
+        pad = "medium"
+        align = "center"
+        justify = "center" >
+          <Heading size = "small">{finalTime}</Heading>
+        </Box>
     );
 }
 
@@ -52,16 +57,24 @@ export default function Timer()
   if(isHidden === false)
   {
     return(
-        <div>
-            <TimeToString time = {time}/>
-        </div>
+      <Box>
+          <TimeToString time = {time}/>
+      </Box>
     );
 
   }else{
     return(
-        <div>
-            <h1> Hidden </h1>
-        </div>
+        <Box 
+        border = "true" 
+        pad = "medium"
+        align = "center"
+        justify = "center" 
+        background = {{
+          color: "dark-1",
+          dark: "dark-2"
+          }}>
+          <Heading size = "small">Hidden</Heading>
+        </Box>
     );
   }
 }

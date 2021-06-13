@@ -1,6 +1,6 @@
 import socketIOClient from "socket.io-client";
 
-const ENDPOINT = "http://192.168.43.44:4001";
+const ENDPOINT = "http://192.168.1.4:4001";
 const HOME_PATH = 'http://localhost:3000';
 
 let socket = socketIOClient(ENDPOINT);
@@ -63,7 +63,6 @@ export function playerRecoverSession(onRecover, ...args)
 }
 
 // HOST
-
 export function hostRecoverSession(onRecover, ...args)
 {
  
@@ -218,7 +217,6 @@ export function hostPointUpdates(setPointsMap, setCurrentSpeaker){
 export function playerPointUpdates(setPointsMap){
 
     socket.on('update-points-all', (points) =>{
-        console.log(points);
         setPointsMap(new Map (points));
     })
 
@@ -233,4 +231,5 @@ socket.on('not-authorised',(uniqueId) =>{
         alert('You are not authorised for this action');
     }
 })
+
 export default socket;

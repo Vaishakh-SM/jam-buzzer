@@ -167,9 +167,7 @@ function onBuzz(socket) {
     let uniqueId = socketStore.get(socket.id);
     let roomId = playerStore.get(uniqueId).roomId;
     let nickname = playerStore.get(uniqueId).nickname;
-    console.log(uniqueId, "Has buzzed ");
-    console.log("Exists in buzzerlocked? ", roomStore.get(roomId).buzzerLocked.has(uniqueId));
-    console.log(roomStore);
+
     if(roomStore.get(roomId).buzzerLocked.has(uniqueId) === false){
       let buzzes = roomStore.get(roomId).buzzes;
       buzzes.push(nickname);
