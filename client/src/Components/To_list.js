@@ -2,6 +2,8 @@ import React from 'react';
 import { DataTable, List, Text} from 'grommet';
 
 export function ArrayToList(props){
+    // Takes an array and returns a
+    // grommet list
 
     let listItems = props.array.map((item) => {
         return ({name : item});
@@ -15,6 +17,8 @@ export function ArrayToList(props){
 }
 
 export function PlayerPointsToTable(props){
+    // Takes a map ('points') and 
+    // returns a grommet DataTable
 
     let listItems = [];
 
@@ -39,47 +43,6 @@ export function PlayerPointsToTable(props){
                 header: <Text weight="bold">Points</Text>,
             }
         ]}
-
-        data={listItems}
-        sortable = {true}
-        />
-    );
-}
-
-export function HostPointsToTable(props){
-
-    let listItems = [];
-
-    // props.points.forEach((value, key) =>{
-    //     let elem = (<li key ={key}>{value.nickname} {'->'} {value.points}</li>);
-    //     listItems.push(elem);
-
-    props.points.forEach((value,key) =>{
-            listItems.push(
-                {
-                    'nickname' : value.nickname,
-                    'points' : value.points.toFixed(3),
-                    'uniqueId' : key
-                }
-            );
-        })
-
-    return(
-        <DataTable
-        columns = {[
-            {
-                property: 'nickname',
-                header:<Text weight="bold">Name</Text>,
-            },
-            {
-                property: 'points',
-                header: <Text weight="bold">Points</Text>,
-            }
-        ]}
-
-        onClickRow = { ({datum}) =>{
-            console.log(datum);
-        }}
 
         data={listItems}
         sortable = {true}

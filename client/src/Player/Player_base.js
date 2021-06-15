@@ -5,10 +5,12 @@ import { Form, FormField, TextInput, Box, Button, Heading, Header } from 'gromme
 import {Home} from 'grommet-icons';
 import {useHistory} from 'react-router-dom';
 
-function Login(props)
-{
-    const [value, setValue] = React.useState({});
+function Login(props){
+
+    const [value, setValue] = useState({});
+
     let history = useHistory();
+
     return(
         <Box>
             <Header border = {{side : "bottom"}}>
@@ -17,7 +19,7 @@ function Login(props)
                 }}/>
             </Header>
             <Box fill = "true" pad = "medium">
-                <Heading>Login</Heading>
+                <Heading>Join Game</Heading>
                 <Form
                 value={value}
                 onChange={nextValue => setValue(nextValue)}
@@ -26,16 +28,16 @@ function Login(props)
                     props.submitHandler(value.roomId, value.nickname);
                 }}
                 >
-                <FormField name="nickname" htmlFor="text-input-id" label="Nickname">
+                <FormField name="nickname" htmlFor="text-input-id" label="Nickname" required>
                     <TextInput id="nickname" name="nickname" />
                 </FormField>
 
-                <FormField name="roomId" htmlFor="text-input-id" label="Room ID">
+                <FormField name="roomId" htmlFor="text-input-id" label="Room ID" required>
                     <TextInput id="roomId" name="roomId" />
                 </FormField>
 
                 <Box direction="row" gap="medium">
-                    <Button type="submit" primary label="Submit" />
+                    <Button type="submit" primary label="Join" />
                     <Button type="reset" label="Reset" />
                 </Box>
                 </Form>

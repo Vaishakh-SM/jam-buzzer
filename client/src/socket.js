@@ -1,14 +1,16 @@
 import socketIOClient from "socket.io-client";
 
-const ENDPOINT = "http://192.168.1.4:4001";
+const ENDPOINT = null;
+// Set your network endpoint
+if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
+
 const HOME_PATH = 'http://localhost:3000';
 
 let socket = socketIOClient(ENDPOINT);
 
 
 // Player
-export function playerLogin(roomId, nickname, setLoginStatus)
-{
+export function playerLogin(roomId, nickname, setLoginStatus){
     socket.emit('player-login', socket.id, roomId, nickname);
 
     socket.on('player-login-success',(uniqueId, roomId, nickname) =>
@@ -31,8 +33,7 @@ export function playerLogin(roomId, nickname, setLoginStatus)
     });
 }
 
-export function playerRecoverSession(onRecover, ...args)
-{
+export function playerRecoverSession(onRecover, ...args){
  
     socket.emit('player-recover-session', sessionStorage.getItem('uniqueId'));
   
@@ -62,9 +63,20 @@ export function playerRecoverSession(onRecover, ...args)
     })
 }
 
+export function playerPointUpdates(setPointsMap){
+
+    socket.on('update-points-all', (points) =>{
+        setPointsMap(new Map (points));
+    })
+
+    socket.on('update-points', (uniqueId,points)=>{
+        if(socket.uniqueId === uniqueId)
+            setPointsMap(new Map(points));
+    })
+}
+
 // HOST
-export function hostRecoverSession(onRecover, ...args)
-{
+export function hostRecoverSession(onRecover, ...args){
  
     socket.emit('host-recover-session', sessionStorage.getItem('uniqueId'));
     
@@ -94,8 +106,8 @@ export function hostRecoverSession(onRecover, ...args)
     })
 }
 
-export function hostLogin(setRoomId)
-{
+export function hostLogin(setRoomId){
+
     socket.nickname = "host" ;
     socket.emit("host-login");
     socket.on('host-login-success', (uniqueId, roomId) =>{
@@ -112,8 +124,22 @@ export function hostLogin(setRoomId)
     })
 }
 
-// MISC
+export function hostPointUpdates(setPointsMap, setCurrentSpeaker){
+    socket.on('update-points-all', (points) =>{
+        setPointsMap(new Map(points));
+    })
 
+    socket.on('update-points', (uniqueId,points)=>{
+        if(socket.uniqueId === uniqueId)
+            setPointsMap(new Map(points));
+    })
+
+    socket.on('set-current-speaker', (nickname)=>{
+        setCurrentSpeaker(nickname);
+    })
+}
+
+// Components
 export function buzzerUpdates(setBuzzerLock){
 
     socket.on('lock-buzzer',(uniqueId)=>{
@@ -137,8 +163,8 @@ export function buzzerUpdates(setBuzzerLock){
     })
 }
 
-export function timerUpdates(setTime,setIsRunning,setIsHidden)
-{
+export function timerUpdates(setTime,setIsRunning,setIsHidden){
+
     socket.on('start-timer-all',() =>{
         setIsRunning(true);
     })
@@ -190,41 +216,11 @@ export function buzzesUpdates(setBuzzes){
     });
 
     socket.on('update-buzzes', (uniqueId, buzzes)=>{
-        console.log('Update buzzes called ',' unique id given is ',uniqueId);
-        console.log("Socket unique id is ",socket.uniqueId);
-        // DEBUG COMMENTS
-
         if(socket.uniqueId === uniqueId)
             setBuzzes(buzzes);
     })
 }
 
-export function hostPointUpdates(setPointsMap, setCurrentSpeaker){
-    socket.on('update-points-all', (points) =>{
-        setPointsMap(new Map(points));
-    })
-
-    socket.on('update-points', (uniqueId,points)=>{
-        if(socket.uniqueId === uniqueId)
-            setPointsMap(new Map(points));
-    })
-
-    socket.on('set-current-speaker', (nickname)=>{
-        setCurrentSpeaker(nickname);
-    })
-}
-
-export function playerPointUpdates(setPointsMap){
-
-    socket.on('update-points-all', (points) =>{
-        setPointsMap(new Map (points));
-    })
-
-    socket.on('update-points', (uniqueId,points)=>{
-        if(socket.uniqueId === uniqueId)
-            setPointsMap(new Map(points));
-    })
-}
 
 socket.on('not-authorised',(uniqueId) =>{
     if(socket.uniqueId === uniqueId){

@@ -144,11 +144,11 @@ function onPlayerLogin(socket) {
       
       updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
       updateRoomStore(roomId, 'players', roomStore.get(roomId).players.concat(uniqueId));
-      updateRoomStore(roomId, 'points', roomStore.get(roomId).points.set(uniqueId, 
-      {
-        nickname: nickname,
-        points: 0
-      }));
+      roomStore.get(roomId).points.set(uniqueId, 
+        {
+          nickname: nickname,
+          points: 0
+        });
 
       io.to(socketId).emit('player-login-success', uniqueId, roomId, nickname);
       socket.join(roomId);
@@ -342,6 +342,86 @@ function onHostRequest(socket) {
 
   })
 
+  socket.on('add-points', (pointString, speakerId) =>{
+    [uniqueId, roomId, hostId] = getIds();
+
+    addAmount = parseFloat(pointString);
+
+    if(!isNaN(addAmount) && (uniqueId === hostId)){
+      let currentPoints = roomStore.get(roomId).points;
+      let currentSpeakerPoints = currentPoints.get(speakerId).points;
+
+      let finalPoints = currentPoints.set(speakerId,
+        {
+          nickname:playerStore.get(speakerId).nickname,
+          points: currentSpeakerPoints + addAmount
+        });
+      io.to(roomId).emit('update-points-all', Array.from(finalPoints));
+    }
+  })
+
+  socket.on('set-weight-time',(weightTimeString) =>{
+    [uniqueId, roomId, hostId] = getIds();
+
+    let _weightTime = parseInt(weightTimeString, 10);
+
+    if(uniqueId === hostId && !isNaN(_weightTime)){
+      updateRoomStore(roomId, "weightTime", _weightTime);
+    }
+  })
+
+  socket.on('set-time', (timeRemainingString) =>{
+    [uniqueId, roomId, hostId] = getIds();
+
+    let _timeRemaining = parseInt(timeRemainingString, 10);
+
+    if(uniqueId === hostId && !isNaN(_timeRemaining)){
+      updateRoomStore(roomId, "timeRemaining", _timeRemaining);
+      io.to(roomId).emit('set-time-all',_timeRemaining);
+    }
+  })
+
+  socket.on('hide-timers', (isHidden) =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId ){
+      if(isHidden)
+      {
+        io.to(roomId).emit('hide-timer-all', hostId);
+      } else{
+        io.to(roomId).emit('unhide-timer-all');
+      }
+    }
+  })
+
+  socket.on('reset-game', () =>{
+    [uniqueId, roomId, hostId] = getIds();
+    if(uniqueId === hostId ){
+  
+      updateRoomStore(roomId, 'buzzes', []);
+      updateRoomStore(roomId, 'timeRemaining', 60000);
+      let playerList = roomStore.get(roomId).players;
+
+      for(let playerUniqueId of playerList){ 
+        if(playerUniqueId !== hostId){
+          roomStore.get(roomId).points.set(playerUniqueId, 
+          {
+            nickname: playerStore.get(playerUniqueId).nickname,
+            points: 0
+          });
+        }
+      }
+
+      updateRoomStore(roomId, 'timestamp', null);
+      updateRoomStore(roomId, 'weightTime', 0);
+      updateRoomStore(roomId, 'currentSpeaker', null);
+      updateRoomStore(roomId, 'gameRunning', false);
+      updateRoomStore(roomId, 'buzzerLocked', []);
+
+      io.to(roomId).emit('update-points-all', Array.from(roomStore.get(roomId).points));
+      io.to(roomId).emit('update-buzzes-all', roomStore.get(roomId).buzzes);
+      io.to(roomId).emit('set-time-all', 60000);
+    }
+  })
 }
 
 function onPlayerFetch(socket){
