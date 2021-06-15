@@ -1,5 +1,5 @@
 import React from "react";
-import {BrowserRouter,Switch,Route} from "react-router-dom";
+import { BrowserRouter, Switch, Route } from "react-router-dom";
 import PlayerBase from "./Player/Player_base"
 import HostGame from "./Host/Host_game"
 import Home from "./Home/Home"

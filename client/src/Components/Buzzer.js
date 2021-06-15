@@ -1,18 +1,6 @@
+import { Box, Heading } from "grommet";
 import React, {useEffect, useState} from "react";
 import socket, {buzzerUpdates } from "../socket";
-
-function BuzzerDisplay(props){
-    if(props.buzzerLock === true)
-    {
-        return(
-            <h1>Buzzed</h1>
-        )
-    }else{
-        return(
-            <h1>Buzz</h1>
-        )
-    }
-}
 
 export default function Buzzer(){
     const [buzzerLock, setBuzzerLock] = useState(false);
@@ -25,17 +13,50 @@ export default function Buzzer(){
     function buzzHandler(event)
     {
         event.preventDefault();
-        
         if(buzzerLock === false)
         {
             socket.emit('buzz');
         }
     }
 
-    return(
-        <div onClick = {buzzHandler}>
-            <BuzzerDisplay buzzerLock = {buzzerLock}/>
-        </div>
-    )
+    if(buzzerLock === true)
+    {
+        return(
+            <Box 
+            background ={{color:'status-error'}} 
+            onClick ={buzzHandler}
+            pad = "medium"
+            align = "center"
+            justify = "center"
+            round ={{
+                size: "large",
+            }}
+            fill = "true"
+            border={false}
+            focusIndicator={false}
+            animation="fadeIn">
+                <Heading size = "small">Buzzed</Heading>
+            </Box>
+        )
+    }else{
+        return(
+            <Box background ={{color:'status-ok'}} 
+            hoverIndicator = {{color : 'neutral-1'}}
+            onClick ={buzzHandler}
+            pad = "medium"
+            align = "center"
+            justify = "center"
+            round ={{
+                size: "large",
+            }}
+            fill = "true"
+            border={false}
+            focusIndicator={false}
+            animation="fadeIn">
+                <Heading size = "small">Buzz</Heading>
+            </Box>
+            
+        )
+    }
 
 }
