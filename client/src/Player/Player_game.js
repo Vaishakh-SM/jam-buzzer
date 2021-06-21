@@ -19,6 +19,7 @@ const MediumMain = () =>{
 
             <Box 
             direction = "column" 
+            justify = "around"
             fill = "vertical"
             flex = {{grow : 2}}
             >

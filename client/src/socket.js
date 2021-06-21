@@ -1,7 +1,7 @@
 import socketIOClient from "socket.io-client";
 
-const ENDPOINT = null;
-// Set your network endpoint
+const ENDPOINT = "192.168.1.4:4001";
+
 if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
 
 const HOME_PATH = 'http://localhost:3000';
