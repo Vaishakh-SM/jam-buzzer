@@ -1,16 +1,19 @@
 {
-  "name": "server",
+  "name": "jam-buzzer",
   "version": "1.0.0",
-  "description": "",
+  "description": "A JAM buzzer application",
   "main": "server/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd client && npm run start && cd ../server && node index.js"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vaishakh-SM/jam-buzzer.git"
+  },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "express": "^4.17.1",
-    "socket.io": "^4.1.2"
-  }
+  "bugs": {
+    "url": "https://github.com/Vaishakh-SM/jam-buzzer/issues"
+  },
+  "homepage": "https://github.com/Vaishakh-SM/jam-buzzer#readme"
 }
