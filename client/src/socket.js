@@ -1,10 +1,10 @@
 import socketIOClient from "socket.io-client";
 
-const ENDPOINT = null;
+const ENDPOINT = "https://jam-buzzer.herokuapp.com/";
 // Set your network endpoint
 if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
 
-const HOME_PATH = 'http://localhost:3000';
+const HOME_PATH = 'https://zen-clarke-a6b5fb.netlify.app/';
 
 let socket = socketIOClient(ENDPOINT);
 
