@@ -1,7 +1,7 @@
 import React from "react";
 import {Box, Button, Header, Heading, Paragraph, Footer, Text, Anchor} from "grommet";
 import { useHistory } from "react-router-dom";
-import {Github, Contact} from "grommet-icons";
+import {Github, Contact, Instagram} from "grommet-icons";
 
 const Head = () => {
   return (
@@ -63,11 +63,13 @@ const Foot = () => {
         margin ={{bottom:"small"}}>
 
           <Anchor 
-          label="Contact"
-          icon = {<Contact/>}/>
+          label="Instagram"
+          href ="https://www.instagram.com/vaishakh_s_m/"
+          icon = {<Instagram/>}/>
 
           <Anchor 
           label="Github"
+          href ="https://github.com/Vaishakh-SM/jam-buzzer"
           icon = {<Github/>}/>
         </Box>
       </Footer>
