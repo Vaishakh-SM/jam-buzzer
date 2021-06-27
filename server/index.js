@@ -174,6 +174,7 @@ function onBuzz(socket) {
 
       io.to(roomId).emit('update-buzzes-all', buzzes);
       io.to(roomId).emit('lock-buzzer', uniqueId);
+      io.to(roomId).emit('emit-buzzer-sound');
 
       if(roomStore.get(roomId).gameRunning === true){
           let currentTime = Date.now();
@@ -237,10 +238,15 @@ function onRecoverSession(socket)
     {
       let roomId = playerStore.get(uniqueId).roomId;
       let nickname = playerStore.get(uniqueId).nickname;
+      
+      if(socket.roomId !== roomId)
+        socket.join(roomId);
+      
+      if(socketStore.has(socket.id) === false){
+        socketStore.set(socket.id,uniqueId);
+        updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
+      }
 
-      socket.join(roomId);
-      socketStore.set(socket.id,uniqueId);
-      updateRoomStore(roomId, 'numberOfPlayers', roomStore.get(roomId).numberOfPlayers + 1);
       io.to(roomId).emit('host-recover-session-success',uniqueId, roomId, nickname);
 
     }else {
@@ -291,9 +297,10 @@ function onHostRequest(socket) {
         if(uniqueId === hostId){
           if(roomStore.get(roomId).currentSpeaker !== null)
           {
+            let timeOffset = Date.now() + roomStore.get(roomId).timeRemaining;
             updateRoomStore(roomId, 'timestamp', Date.now());
             updateRoomStore(roomId, 'gameRunning', true);
-            io.to(roomId).emit('start-timer-all');
+            io.to(roomId).emit('start-timer-all', timeOffset);
 
           } else {
             io.to(roomId).emit('start-timer-failed',uniqueId);

@@ -4,6 +4,7 @@ import {timerUpdates} from "../socket";
 
 const LEAST_COUNT = 100; 
 let timeoutId;
+let timeOffset = null;
 
 function TimeToString(props)
 {
@@ -23,7 +24,6 @@ function TimeToString(props)
 
     return (
         <Box 
-        border = "true" 
         pad = "medium"
         align = "center"
         justify = "center" >
@@ -32,6 +32,9 @@ function TimeToString(props)
     );
 }
 
+function setTimeOffset(_timeOffset){
+  timeOffset = _timeOffset;
+}
 
 export default function Timer()
 {
@@ -41,14 +44,16 @@ export default function Timer()
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect( ()=>{
-    timerUpdates(setTime, setIsRunning, setIsHidden);
+    timerUpdates(setTime, setIsRunning, setIsHidden, setTimeOffset)
   },[]);
 
   useEffect(() => {
    
     if(isRunning === true && time > 0)
     {
-        timeoutId = setInterval(setTime,LEAST_COUNT,Math.max(0, time - LEAST_COUNT));
+        timeoutId = setInterval(()=>{
+          setTime(timeOffset - new Date())
+        },LEAST_COUNT);
     }
 
     return () => clearInterval(timeoutId);
@@ -57,7 +62,7 @@ export default function Timer()
   if(isHidden === false)
   {
     return(
-      <Box>
+      <Box border = {false}>
           <TimeToString time = {time}/>
       </Box>
     );

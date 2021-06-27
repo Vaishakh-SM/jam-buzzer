@@ -8,7 +8,7 @@ ReactDOM.render(
     <Grommet 
     full 
     theme = {grommet} 
-    themeMode = "dark">
+    >
       <App/>
     </Grommet>
   </React.StrictMode>,

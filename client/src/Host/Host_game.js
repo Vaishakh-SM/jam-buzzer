@@ -3,88 +3,99 @@ import socket, {hostLogin, hostRecoverSession} from '../socket';
 import HostPointsTable from './Host_points';
 import Buzzes from '../Components/Buzzes';
 import Timer from '../Components/Timer';
-import { Box, Button, CheckBox, Header, Text, Tab, Tabs, TextInput, FormField, Form, Layer } from 'grommet';
-import { Home, Copy, Refresh } from 'grommet-icons';
+import { Box, Button, CheckBox, Text, Tab, Tabs, TextInput, FormField, Form, Layer, Sidebar } from 'grommet';
+import { Home, Copy, Refresh, Play, Stop, FormRefresh, Configure } from 'grommet-icons';
 import { useHistory } from 'react-router-dom';
+import Swal from 'sweetalert2'
 
 const ControlPanel = ({settings}) =>{
 
-  const [showSideBar, setShowSideBar] = useState(true);
+  const [showSideBar, setShowSideBar] = useState(false);
   const [pointsFormValue, setPointsFormValue] = useState({weightTime: 0});
   const [timerIsHidden, setTimerIsHidden] = useState(false);
 
   return (
        <Box>
-          <Button label = "Settings" onClick = {() =>{
+          <Box
+          pad = "medium"
+          justify = "center"
+          direction = "row"
+          hoverIndicator
+          onClick = {() =>{
             setTimeout(() => {setShowSideBar(!showSideBar)}, 100);
-            }}/>
+            }}>
+              <Configure/>
+            </Box>
 
              {showSideBar && (
-               <Box 
-               flex = {{grow : 1}}
-               animation = "fadeIn"
-               pad = "small"
-               > 
-                 <Tabs>
-                   <Tab title = "Time">
-                  <Form onSubmit={({ value }) => {socket.emit('set-time',value.timeRemaining)}}>
-                    <FormField 
-                    name="setTime" 
-                    htmlFor="textinput-id" 
-                    label="Set Time"
-                    info = "(in milliseconds)">
-                      <TextInput id="textinput-id" name="timeRemaining" />
-                    </FormField>
-                      <Button type="submit" secondary label="Submit" />
-                  </Form>
-
-                    <CheckBox
-                        checked={timerIsHidden}
-                        label="Hide timers"
-                        onChange={(event) =>{
-                           setTimerIsHidden(!timerIsHidden);
-                           socket.emit('hide-timers', event.target.checked)
-                          }}
-                        pad = "small"
-                      />
-
-                   </Tab>
-
-                   <Tab title = "Points">
-                    <Box direction ="column">
-                      <Form
-                      value ={pointsFormValue}
-                      onChange = {(newValue) => setPointsFormValue(newValue)}
-                      onSubmit = {({value}) => {
-                        console.log(value);
-                        socket.emit('set-weight-time',value.weightTime)
-                        }}>
+               <Layer
+               onEsc = {()=> setShowSideBar(false)}
+               onClickOutside = {() => setShowSideBar(false)}
+               background ={{color : "dark-2"}}> 
+                <Box
+                pad = "medium"
+                width = "large"
+                height = "medium">
+                  <Tabs>
+                      <Tab title = "Time">
+                      <Form onSubmit={({ value }) => {socket.emit('set-time',Math.floor(value.timeRemaining*1000))}}>
                         <FormField 
-                        name="weightTime" 
-                        htmlFor="text-input-id" 
-                        label="Weight time"
-                        info = "Time (in milli) after which speaker starts getting points"
-                        flex = "grow">
-                          <TextInput id="text-input-id-1" name="weightTime" />
+                        name="setTime" 
+                        htmlFor="textinput-id" 
+                        label="Set Time"
+                        info = "(in seconds)">
+                          <TextInput id="textinput-id" name="timeRemaining" />
                         </FormField>
-
-                        <Button type="submit" secondary label="Set" />
-                     
+                          <Button type="submit" secondary label="Submit" />
                       </Form>
-                    </Box>
-                   </Tab>
 
-                   <Tab title = "Preferences">
-                    <CheckBox
-                        checked={settings.clearBuzzerOnStart[0]}
-                        label="Clear buzzers automatically on starting timer"
-                        onChange={(event) => settings.clearBuzzerOnStart[1](event.target.checked)}
-                        pad = "small"
-                      />
-                   </Tab>
+                        <CheckBox
+                            checked={timerIsHidden}
+                            label="Hide timers"
+                            onChange={(event) =>{
+                              setTimerIsHidden(!timerIsHidden);
+                              socket.emit('hide-timers', event.target.checked)
+                              }}
+                            pad = "small"
+                          />
 
-                 </Tabs>
-               </Box>
+                      </Tab>
+
+                      <Tab title = "Points">
+                        <Box direction ="column">
+                          <Form
+                          value ={pointsFormValue}
+                          onChange = {(newValue) => setPointsFormValue(newValue)}
+                          onSubmit = {({value}) => {
+                            console.log(value);
+                            socket.emit('set-weight-time',Math.floor(value.weightTime*1000))
+                            }}>
+                            <FormField 
+                            name="weightTime" 
+                            htmlFor="text-input-id" 
+                            label="Weight time"
+                            info = "Time (in secs) after which speaker starts getting points"
+                            flex = "grow">
+                              <TextInput id="text-input-id-1" name="weightTime" />
+                            </FormField>
+
+                            <Button type="submit" secondary label="Set" />
+                        
+                          </Form>
+                        </Box>
+                    </Tab>
+
+                    <Tab title = "Preferences">
+                      <CheckBox
+                          checked={settings.clearBuzzerOnStart[0]}
+                          label="Clear buzzers automatically on starting timer"
+                          onChange={(event) => settings.clearBuzzerOnStart[1](event.target.checked)}
+                          pad = "small"
+                        />
+                    </Tab>
+                   </Tabs>
+                 </Box>
+               </Layer>
              )}
 
         </Box>
@@ -95,26 +106,36 @@ const BodyTimer = ({settings}) =>{
   return(
     <Box 
     direction ="row"
-    gap = "medium">
-
-      <Box flex = "grow">
-        <Timer/>
-      </Box>
+    border ={true}>
 
       <Box 
-      direction="column"
-      gap ="medium"
-      justify = "center">
-        <Button primary label = "Start Timer" onClick = {()=>{
-          if(settings.clearBuzzerOnStart[0] === true){
-            socket.emit('start-timer-all');
-            socket.emit('clear-buzzers-all');
-          }else{
-            socket.emit('start-timer-all');
-          }
+      flex= "grow"
+      direction="row">
+        <Box flex = "grow">
+          <Timer/>
+        </Box>
+     
+        <Box 
+        direction="row"
+        gap ="small"
+        justify = "center">
+          <Button icon = {<Play/>} hoverIndicator onClick = {()=>{
+            if(settings.clearBuzzerOnStart[0] === true){
+              socket.emit('start-timer-all');
+              socket.emit('clear-buzzers-all');
+            }else{
+              socket.emit('start-timer-all');
+            }
 
+            }}/>
+          <Button icon = {<Stop/>} hoverIndicator onClick = {()=>{socket.emit('stop-timer-all')}}/>
+          <Button icon = {<FormRefresh/>} hoverIndicator onClick ={() =>{
+            let refreshConfirm = window.confirm('Do you wish to set timer to 60 seconds?');
+            if(refreshConfirm){
+              socket.emit('set-time',60000);
+            }
           }}/>
-        <Button secondary label = "Stop Timer" onClick = {()=>{socket.emit('stop-timer-all')}}/>
+        </Box>
       </Box>
 
     </Box>
@@ -126,8 +147,13 @@ const BodyBuzzes = () =>{
     <Box 
     direction = "column"
     gap = "medium">
+      <Box 
+      border = {{color : "brand"}}
+      pad = "small"
+      alignSelf = "center"
+      hoverIndicator
+      onClick ={() => socket.emit('clear-buzzers-all')}>Clear buzzers</Box>
       <Buzzes/>
-      <Button primary onClick ={() => socket.emit('clear-buzzers-all')} label = "Clear buzzers"/>
     </Box>
   )
 }
@@ -154,54 +180,98 @@ export default function Host()
 
     useEffect(()=>{   
 
-        if(!sessionStorage.uniqueId)
+        if(!sessionStorage.uniqueId || sessionStorage.isHost === "false")
         {
             hostLogin(setRoomId)
         }else{
-          let restoreSession = window.confirm('An old session has been found, would you like to reload that session')
 
-          if(restoreSession)
-          {
-            hostRecoverSession(([setRoomId,roomId])=>{
-              setRoomId(roomId)
-            },setRoomId,sessionStorage.getItem('roomId'))
-    
-          }else
-          {
-            hostLogin(setRoomId)
-          }
+          Swal.fire({
+            title: 'Do you want to recover your old session?',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              hostRecoverSession(([setRoomId,roomId])=>{
+                setRoomId(roomId)
+              },setRoomId,sessionStorage.getItem('roomId'))
+            }
+            else{
+              hostLogin(setRoomId)
+            }
+          })
         }
         
     },[])
 
     return(
         <Box 
+        direction = "row"
         fill = "vertical">
-          <Header 
-            border = {{side : "bottom"}}
-            pad = "small">
-                <Button icon={<Home/>} hoverIndicator onClick = {() => {
-                    history.push("/")
-                }}/>
-                
-                <Button icon={<Refresh/>} hoverIndicator onClick = {() => {
-                    setShowResetLayer(true);
-                }}/>
-
-                <Box flex = "grow"></Box>
-                <Box direction = "column">
-                    <Text>Room ID</Text>
-                    <Box direction ="row">
+          <Sidebar
+            pad = "small"
+            flex = "shrink"
+            gap = "xlarge"
+            background ={{color: "brand"}}>
+                    <Box 
+                    direction ="column"
+                    >
                       <Text 
-                      alignSelf="center">
+                      alignSelf="center"
+                      >
+                        Room Id
+                      </Text>
+
+                      <Text 
+                      weight = "bold"
+                      alignSelf = "center">
                         {roomId}
                       </Text>
-                      <Button icon = {<Copy size ="small"/>} hoverIndicator onClick = {() =>{
+
+                      <Box
+                      hoverIndicator 
+                      pad = "small"
+                      direction = "row"
+                      justify = "around"
+                      margin ={{top :"xsmall"}}
+                      gap = "xsmall"
+                      onClick = {() =>{
                         navigator.clipboard.writeText(roomId);
-                      }}/>
+                      }}>
+                        <Copy size = "medium"/>
+                        <Text>Copy ID</Text>
+                      </Box>
                     </Box>
+                    
+                <Box
+                gap = "medium"
+                margin = {{vertical: "large"}}>
+                  <Box
+                  hoverIndicator
+                  pad = "medium"
+                  justify = "center"
+                  direction = "row"
+                  onClick = {() => {
+                      history.push("/")
+                  }}>
+                    <Home/>
+                  </Box>
+                  
+                  <Box
+                  pad = "medium"
+                  justify = "center"
+                  direction = "row"
+                  hoverIndicator 
+                  onClick = {() => {
+                      setShowResetLayer(true);
+                  }}>
+                    <Refresh/>
+                  </Box>
+
+                  <ControlPanel settings = {settings}/>
                 </Box>
-          </Header>
+          </Sidebar>
           {showResetLayer && (
             <Layer onEsc={() => setShowResetLayer(false)}
             onClickOutside={() => setShowResetLayer(false)}
@@ -214,11 +284,11 @@ export default function Host()
                 <Box 
                 direction = "row"
                 gap = "small">
-                  <Button label = "Yes" onClick = {()=>{
+                  <Button primary label = "Yes" onClick = {()=>{
                     setShowResetLayer(false);
                     socket.emit('reset-game');
                   }}/>
-                  <Button label = "No" onClick = {()=>{
+                  <Button secondary label = "No" onClick = {()=>{
                     setShowResetLayer(false);
                   }}/>
                 </Box>
@@ -228,29 +298,39 @@ export default function Host()
           )}
           <Box 
           direction = "row"
-          flex = "grow"
+          flex = {{grow : 5}}
           as = "main"
-          fill = {true}
           pad = "small"
           >  
-
             <Box 
-            direction = "column"
-            gap = "medium"
-            flex = {{grow : 2}}
-            >
-              <BodyTimer settings = {settings}/>
-              <BodyPointsTable/>
-            </Box>
+            direction ="column"
+            fill>
+              <Box pad = "medium">
+                <BodyTimer settings = {settings}/>
+              </Box>
 
-            <Box flex = {{grow : 1}}></Box>
+              <Box 
+              pad = "medium"
+              direction ="row"
+              justify = "between">
+                <Box 
+                margin ="small"
+                border = "right"
+                pad = "medium"
+                flex = {{grow:2}}
+                fill = "vertical">
+                  <BodyPointsTable/>
+                </Box>
 
-            <Box 
-            flex = {{grow : 1}}
-            direction = "column"
-            gap = "medium">
-              <BodyBuzzes/>
-              <ControlPanel settings = {settings}/>
+                <Box 
+                margin ="small"
+                flex = {{grow:2}}
+                pad = "medium">
+                  <BodyBuzzes/>
+                </Box>
+
+              </Box>
+
             </Box>
 
           </Box>  

@@ -1,15 +1,15 @@
 import React from "react";
 import {Box, Button, Header, Heading, Paragraph, Footer, Text, Anchor} from "grommet";
 import { useHistory } from "react-router-dom";
-import {Github, Contact} from "grommet-icons";
+import {Github, Instagram} from "grommet-icons";
 
 const Head = () => {
   return (
     <Header direction="column" gap = "none" margin = {{bottom : "small"}} border={{ side: 'bottom' }}>
         <Heading alignSelf = "center" margin ={{bottom : "none"}}>
-          JAM
+          JaMaster
         </Heading>
-        <Paragraph alignSelf="center">We make it easy for the JAM gods!</Paragraph>
+        <Paragraph alignSelf="center">We bestow this tool upon you, puny gods!</Paragraph>
     </Header>
   )
 };
@@ -40,10 +40,9 @@ const Body = () => {
 
 const Foot = () => {
   return (
-    <Box>
-
       <Footer 
       tag='footer'
+      wrap
       direction='row'
       pad='medium'
       border={{ side: 'top' }}
@@ -51,19 +50,29 @@ const Foot = () => {
       flex={false}
       justify="start">
 
-        <Text size = "large">JAM</Text>
+        <Text 
+        size = "large"
+        textAlign = "center"
+        margin ={{bottom:"small"}}>
+          JaMaster by Vaishakh
+        </Text>
         <Box flex = "grow"></Box>
-        
-        <Anchor 
-        label="Contact"
-        icon = {<Contact/>}/>
+        <Box 
+        direction = "row"
+        gap="medium"
+        margin ={{bottom:"small"}}>
 
-        <Anchor 
-        label="Github"
-        icon = {<Github/>}/>
+          <Anchor 
+          label="Instagram"
+          href ="https://www.instagram.com/vaishakh_s_m/"
+          icon = {<Instagram/>}/>
+
+          <Anchor 
+          label="Github"
+          href ="https://github.com/Vaishakh-SM/jam-buzzer"
+          icon = {<Github/>}/>
+        </Box>
       </Footer>
-
-    </Box>
   )
 };
 
