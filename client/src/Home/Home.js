@@ -1,7 +1,7 @@
 import React from "react";
 import {Box, Button, Header, Heading, Paragraph, Footer, Text, Anchor} from "grommet";
 import { useHistory } from "react-router-dom";
-import {Github, Contact, Instagram} from "grommet-icons";
+import {Github, Instagram} from "grommet-icons";
 
 const Head = () => {
   return (
