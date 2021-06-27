@@ -1,14 +1,24 @@
 import { Box, Heading } from "grommet";
 import React, {useEffect, useState} from "react";
 import socket, {buzzerUpdates } from "../socket";
+import buzzer_sound from "../Sounds/buzzer_sound.mp3";
+
+const BUZZER_SOUND = new Audio(buzzer_sound);
 
 export default function Buzzer(){
     const [buzzerLock, setBuzzerLock] = useState(false);
-    
+    const [playBuzzer, setPlayBuzzer] = useState(false);
+
     useEffect(()=>{
-        buzzerUpdates(setBuzzerLock);
+        buzzerUpdates(setBuzzerLock, setPlayBuzzer);
     },[]);
-    
+
+    useEffect(()=>{
+        if(playBuzzer === true){
+            BUZZER_SOUND.play();
+            setPlayBuzzer(false);
+        }
+    },[playBuzzer])
 
     function buzzHandler(event)
     {

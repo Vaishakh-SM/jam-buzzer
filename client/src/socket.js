@@ -1,6 +1,7 @@
 import socketIOClient from "socket.io-client";
+import Swal from 'sweetalert2'
 
-const ENDPOINT = "192.168.1.4:4001";
+const ENDPOINT = "192.168.43.44:4001";
 
 if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
 
@@ -18,6 +19,7 @@ export function playerLogin(roomId, nickname, setLoginStatus){
         sessionStorage.setItem('uniqueId', uniqueId);
         sessionStorage.setItem('roomId', roomId);
         sessionStorage.setItem('nickname',nickname);
+        sessionStorage.setItem('isHost',"false");
 
         socket.uniqueId = uniqueId;
         socket.roomId = roomId;
@@ -115,6 +117,7 @@ export function hostLogin(setRoomId){
         sessionStorage.setItem('nickname','host');
         sessionStorage.setItem('roomId', roomId);
         sessionStorage.setItem('uniqueId', uniqueId);
+        sessionStorage.setItem('isHost',"true");
 
         socket.roomId = roomId;
         socket.uniqueId = uniqueId;
@@ -140,7 +143,11 @@ export function hostPointUpdates(setPointsMap, setCurrentSpeaker){
 }
 
 // Components
-export function buzzerUpdates(setBuzzerLock){
+export function buzzerUpdates(setBuzzerLock, setPlayBuzzer){
+
+    socket.on('emit-buzzer-sound',()=>{
+        setPlayBuzzer(true);
+    })
 
     socket.on('lock-buzzer',(uniqueId)=>{
         if(socket.uniqueId === uniqueId){
@@ -163,10 +170,11 @@ export function buzzerUpdates(setBuzzerLock){
     })
 }
 
-export function timerUpdates(setTime,setIsRunning,setIsHidden){
+export function timerUpdates(setTime,setIsRunning,setIsHidden,setCurrentTimeStamp){
 
-    socket.on('start-timer-all',() =>{
+    socket.on('start-timer-all',(timeOffset) =>{
         setIsRunning(true);
+        setCurrentTimeStamp(timeOffset);
     })
 
     socket.on('stop-timer-all', () =>{
@@ -203,9 +211,21 @@ export function timerUpdates(setTime,setIsRunning,setIsHidden){
         }
     })
 
+    socket.off('start-timer-failed')
     socket.on('start-timer-failed',(uniqueId)=>{
         if(socket.uniqueId === uniqueId){
-            alert('Please select a speaker before starting timer');
+            Swal.fire({
+                title: 'Please select a speaker',
+                width: 600,
+                padding: '3em',
+                background: '#fff',
+                backdrop: `
+                  rgba(0,0,123,0.4)
+                  url("https://sweetalert2.github.io/images/nyan-cat.gif")
+                  left top
+                  no-repeat
+                `
+              })
         }
     })
 }

@@ -23,7 +23,8 @@ const MediumMain = () =>{
             fill = "vertical"
             flex = {{grow : 2}}
             >
-                <Box flex={{grow : 1}}>
+                <Box
+                border = {true}>
                     <Timer/>
                 </Box>
 
