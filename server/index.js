@@ -298,7 +298,7 @@ function onHostRequest(socket) {
           if(roomStore.get(roomId).currentSpeaker !== null)
           {
             let timeOffset = Date.now() + roomStore.get(roomId).timeRemaining;
-            updateRoomStore(roomId, 'timestamp', timeStamp);
+            updateRoomStore(roomId, 'timestamp', Date.now());
             updateRoomStore(roomId, 'gameRunning', true);
             io.to(roomId).emit('start-timer-all', timeOffset);
 

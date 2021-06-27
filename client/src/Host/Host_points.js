@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { hostPointUpdates } from '../socket';
-import { Box, Button, DataTable, Text, Layer, Form, FormField, TextInput } from 'grommet';
+import { Box, Button, DataTable, Text, Layer, Form, FormField, TextInput, Grommet, grommet } from 'grommet';
 import socket from "../socket";
 import {BeautifyName} from "../Components/To_list";
 import Swal from 'sweetalert2'
@@ -36,62 +36,64 @@ const AddPoints = ({setShow}) => {
         if(!Number.isNaN(Number.parseFloat(pointString))){
             socket.emit('add-points', pointString, speakerId);
         }else{
-            alert('Please enter a valid number');
+            Swal.fire('Please enter a valid number');
         }
     }
 
     return(
-        <Layer
-          onEsc={() => setShow(false)}
-          onClickOutside={() => setShow(false)}
-          background ={{color: "dark-2"}}
-        >
-          <Box
-          direction = "column"
-          pad = "medium"
-          gap = "medium">
-            <Text>Selected: {selectedParticipantName}</Text>
-            <Box 
+        <Grommet theme = {grommet} themeMode = "dark">
+            <Layer
+            onEsc={() => setShow(false)}
+            onClickOutside={() => setShow(false)}
+            background ={{color: "dark-2"}}
+            >
+            <Box
             direction = "column"
-            gap = "small">
-                <Text> Reward Points</Text>
+            pad = "medium"
+            gap = "medium">
+                <Text>Selected: {selectedParticipantName}</Text>
                 <Box 
-                direction = "row"
-                gap = "small" >
-                    <Button label = "1" onClick ={() => requestAddPoints("1",selectedParticipantId)}/>
-                    <Button label = "2" onClick ={() => requestAddPoints("2",selectedParticipantId)}/>
-                    <Button label = "3" onClick ={() => requestAddPoints("3",selectedParticipantId)}/>
-                    <Button label = "5" onClick ={() => requestAddPoints("5",selectedParticipantId)}/>
-                    <Button label = "8" onClick ={() => requestAddPoints("8",selectedParticipantId)}/>
+                direction = "column"
+                gap = "small">
+                    <Text> Add</Text>
+                    <Box 
+                    direction = "row"
+                    gap = "small" >
+                        <Button label = "1" onClick ={() => requestAddPoints("1",selectedParticipantId)}/>
+                        <Button label = "2" onClick ={() => requestAddPoints("2",selectedParticipantId)}/>
+                        <Button label = "3" onClick ={() => requestAddPoints("3",selectedParticipantId)}/>
+                        <Button label = "5" onClick ={() => requestAddPoints("5",selectedParticipantId)}/>
+                        <Button label = "8" onClick ={() => requestAddPoints("8",selectedParticipantId)}/>
+                    </Box>
                 </Box>
-            </Box>
 
-            <Box 
-            direction = "column"
-            gap = "small">
-                <Text> Penalty Points</Text>
                 <Box 
-                direction = "row"
-                gap = "small" >
-                    <Button label = "1" onClick ={() => requestAddPoints("-1",selectedParticipantId)}/>
-                    <Button label = "2" onClick ={() => requestAddPoints("-2",selectedParticipantId)}/>
-                    <Button label = "3" onClick ={() => requestAddPoints("-3",selectedParticipantId)}/>
-                    <Button label = "5" onClick ={() => requestAddPoints("-5",selectedParticipantId)}/>
-                    <Button label = "8" onClick ={() => requestAddPoints("-8",selectedParticipantId)}/>
+                direction = "column"
+                gap = "small">
+                    <Text> Subtract</Text>
+                    <Box 
+                    direction = "row"
+                    gap = "small" >
+                        <Button label = "1" onClick ={() => requestAddPoints("-1",selectedParticipantId)}/>
+                        <Button label = "2" onClick ={() => requestAddPoints("-2",selectedParticipantId)}/>
+                        <Button label = "3" onClick ={() => requestAddPoints("-3",selectedParticipantId)}/>
+                        <Button label = "5" onClick ={() => requestAddPoints("-5",selectedParticipantId)}/>
+                        <Button label = "8" onClick ={() => requestAddPoints("-8",selectedParticipantId)}/>
+                    </Box>
                 </Box>
+
+                <Form onSubmit={({ value }) => requestAddPoints(value.addPoints,selectedParticipantId)}>
+                    <FormField name="addPoints" htmlFor="textinput-id" label="Custom points">
+                        <TextInput id="textinput-id" name="addPoints" />
+                    </FormField>
+                    <Box direction="row">
+                        <Button type="submit" primary label="Submit" />
+                    </Box>
+                </Form>
+
             </Box>
-
-            <Form onSubmit={({ value }) => requestAddPoints(value.addPoints,selectedParticipantId)}>
-                <FormField name="addPoints" htmlFor="textinput-id" label="Custom points">
-                    <TextInput id="textinput-id" name="addPoints" />
-                </FormField>
-                <Box direction="row">
-                    <Button type="submit" primary label="Submit" />
-                </Box>
-            </Form>
-
-          </Box>
-        </Layer>
+            </Layer>
+        </Grommet>
     );
 }
 

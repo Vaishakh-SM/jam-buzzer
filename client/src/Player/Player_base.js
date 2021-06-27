@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PlayerGame from "./Player_game";
-import socket, { playerLogin, playerRecoverSession } from "../socket";
+import { playerLogin, playerRecoverSession } from "../socket";
 import { Form, FormField, TextInput, Box, Button, Heading, Header, ResponsiveContext, Text } from 'grommet';
 import {Home} from 'grommet-icons';
 import {useHistory} from 'react-router-dom';

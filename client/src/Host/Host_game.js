@@ -38,12 +38,12 @@ const ControlPanel = ({settings}) =>{
                 height = "medium">
                   <Tabs>
                       <Tab title = "Time">
-                      <Form onSubmit={({ value }) => {socket.emit('set-time',value.timeRemaining)}}>
+                      <Form onSubmit={({ value }) => {socket.emit('set-time',Math.floor(value.timeRemaining*1000))}}>
                         <FormField 
                         name="setTime" 
                         htmlFor="textinput-id" 
                         label="Set Time"
-                        info = "(in milliseconds)">
+                        info = "(in seconds)">
                           <TextInput id="textinput-id" name="timeRemaining" />
                         </FormField>
                           <Button type="submit" secondary label="Submit" />
@@ -68,13 +68,13 @@ const ControlPanel = ({settings}) =>{
                           onChange = {(newValue) => setPointsFormValue(newValue)}
                           onSubmit = {({value}) => {
                             console.log(value);
-                            socket.emit('set-weight-time',value.weightTime)
+                            socket.emit('set-weight-time',Math.floor(value.weightTime*1000))
                             }}>
                             <FormField 
                             name="weightTime" 
                             htmlFor="text-input-id" 
                             label="Weight time"
-                            info = "Time (in milli) after which speaker starts getting points"
+                            info = "Time (in secs) after which speaker starts getting points"
                             flex = "grow">
                               <TextInput id="text-input-id-1" name="weightTime" />
                             </FormField>

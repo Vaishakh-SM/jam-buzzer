@@ -1,9 +1,8 @@
 import socketIOClient from "socket.io-client";
 import Swal from 'sweetalert2'
 
-const ENDPOINT = "192.168.43.44:4001";
-
 const ENDPOINT = "https://jam-buzzer.herokuapp.com/";
+// const ENDPOINT = "http://192.168.43.44:4001";
 // Set your network endpoint
 if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
 
@@ -33,7 +32,7 @@ export function playerLogin(roomId, nickname, setLoginStatus){
 
     socket.on('player-login-fail',()=>
     {
-        alert('The room does not exist or the host has left the room');
+        Swal.fire('The room does not exist or the host has left the room');
     });
 }
 
@@ -60,8 +59,7 @@ export function playerRecoverSession(onRecover, ...args){
     socket.on('player-recover-session-fail',() =>{
 
         alert(`Recovery failed. This may be due to several reasons, usually
-        happens when the room you are trying to enter has closed or if you try to enter as host, while you
-        only have player permissions`);
+        happens when the room you are trying to enter has closed`);
 
         window.location = HOME_PATH;
     })
@@ -246,7 +244,7 @@ export function buzzesUpdates(setBuzzes){
 
 socket.on('not-authorised',(uniqueId) =>{
     if(socket.uniqueId === uniqueId){
-        alert('You are not authorised for this action');
+        Swal.fire('You are not authorised for this action');
     }
 })
 

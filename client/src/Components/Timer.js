@@ -32,8 +32,8 @@ function TimeToString(props)
     );
 }
 
-function setTimeOffset(timeOffset){
-  timeOffset = timeOffset;
+function setTimeOffset(_timeOffset){
+  timeOffset = _timeOffset;
 }
 
 export default function Timer()
