@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { hostPointUpdates } from '../socket';
 import { Box, Button, DataTable, Text, Layer, Form, FormField, TextInput } from 'grommet';
 import socket from "../socket";
+import {BeautifyName} from "../Components/To_list";
+import Swal from 'sweetalert2'
 
 let currentSpeakerId = null;
 let selectedParticipantId = null;
@@ -9,7 +11,22 @@ let selectedParticipantName = 'NA';
 
 const selectSpeaker = () => {
     currentSpeakerId = selectedParticipantId;
-    socket.emit('set-speaker', currentSpeakerId);
+    if(currentSpeakerId !== null){
+        socket.emit('set-speaker', currentSpeakerId);
+    }else{
+        Swal.fire({
+            title: 'Please select a speaker (click on the points table dummy)',
+            width: 600,
+            padding: '3em',
+            background: '#fff',
+            backdrop: `
+              rgba(0,0,123,0.4)
+              url("https://sweetalert2.github.io/images/nyan-cat.gif")
+              left top
+              no-repeat
+            `
+          })
+    }
 }
 
 const AddPoints = ({setShow}) => {
@@ -107,8 +124,34 @@ export default function HostPointsTable()
 
     return(
         <Box 
-        direction ="row"
+        direction ="column"
         gap = "medium">
+
+             <Box 
+            direction = "row"
+            gap = "medium"
+            pad = "small">
+                <Box 
+                direction = "column"
+                margin = "none"
+                width = "medium"
+                >
+                    <Text>Selected : <BeautifyName name = {selectedParticipant}/></Text>
+                    <Text>Current Speaker : <BeautifyName name = {currentSpeaker}/></Text>
+                </Box>
+                <Box 
+                border = {{color : "brand"}}
+                pad = "small"
+                hoverIndicator
+                onClick ={selectSpeaker}>Set Speaker</Box>
+                <Box 
+                border = {{color : "brand"}}
+                pad = "small"
+                hoverIndicator
+                onClick ={() => setShowAddPoints(true)}>Add Points</Box>
+                {showAddPoints && (<AddPoints setShow = {setShowAddPoints}/>)}
+
+            </Box>
 
             <Box 
             direction = "column"
@@ -118,6 +161,7 @@ export default function HostPointsTable()
                     {
                         property: 'nickname',
                         header:<Text weight="bold">Name</Text>,
+                        render: (datum) => <BeautifyName name = {datum.nickname}/>
                     },
                     {
                         property: 'points',
@@ -135,23 +179,6 @@ export default function HostPointsTable()
                 sortable = {true}
                 />
 
-                <Box 
-                direction = "row"
-                gap = "medium"
-                pad = "small">
-                    <Text>Selected : {selectedParticipant}</Text>
-                    <Text>Current Speaker : {currentSpeaker}</Text>
-                </Box>
-
-            </Box>
-
-            <Box 
-            direction="column"
-            gap ="medium"
-            justify = "center">
-                <Button secondary label = "Set speaker" onClick ={selectSpeaker}/>
-                <Button secondary label = "Add points" onClick ={() => setShowAddPoints(true)}/>
-                {showAddPoints && (<AddPoints setShow = {setShowAddPoints}/>)}
             </Box>
 
         </Box>
