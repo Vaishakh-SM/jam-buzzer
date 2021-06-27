@@ -6,7 +6,7 @@ const ENDPOINT = "https://jam-buzzer.herokuapp.com/";
 // Set your network endpoint
 if(ENDPOINT === null) console.log("Set your network endpoint in socket.js");
 
-const HOME_PATH = 'https://zen-clarke-a6b5fb.netlify.app/';
+const HOME_PATH = 'https://jam-master.netlify.app/';
 
 let socket = socketIOClient(ENDPOINT);
 
