@@ -10,7 +10,7 @@ BBC Radio 4 show "Just a minute". It is designed to make point management easier
 <br/>
 <strong>Try it out!</strong> <br/>
 Check out our <a href = "https://jam-master.netlify.app"> website</a>.<br/>
-You are also free to <a href = "https://github.com/Vaishakh-SM/jam-buzzer/new/main?readme=1#setting-up-locally">host this system on your local network</a> for faster performance.
+  You are also free to host this system on your local network for faster performance.
 </div>
 
 <div>
